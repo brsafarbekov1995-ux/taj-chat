@@ -52,7 +52,6 @@
                 this.style.height = (this.scrollHeight) + "px";
             });
 
-            // Drag and Drop (Ислоҳшуда)
             input.setAttribute("draggable", "true");
             input.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", input.value));
             chatBox.addEventListener("dragover", (e) => e.preventDefault());
@@ -61,12 +60,11 @@
                 const text = e.dataTransfer.getData("text/plain");
                 if (text) { 
                     window.sendMessage(text); 
-                    input.value = "";              // Акнун холӣ мешавад
-                    input.style.height = "45px";   // Баландии аслӣ бармегардад
+                    input.value = ""; 
+                    input.style.height = "45px";
                 }
             });
 
-            // Touch Gestures
             let touchStartY = 0;
             input.addEventListener("touchstart", (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
             input.addEventListener("touchend", (e) => {
@@ -99,12 +97,38 @@
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #ffffff; height: 100dvh; display: flex; flex-direction: column; }
-        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #ffffff; }
+        body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; }
+        
+        .header {
+            background: #ffffff;
+            color: #333;
+            padding: 15px;
+            margin: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 20;
+        }
+
+        .chat-box { 
+            flex: 1; 
+            padding: 20px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            background: #ffffff;
+            /* Эффект хирашавӣ дар боло ва поён */
+            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+        }
         
         .my-message, .received-message { 
             padding: 10px; max-width: 80%; 
-            word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; 
+            word-wrap: break-word; 
         }
         .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; }
         .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; }
@@ -112,41 +136,25 @@
         .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; margin: 10px 0; }
         .time-stamp { font-size: 0.6rem; color: #888; margin-top: 4px; text-align: right; }
         
-        .input-panel { padding: 10px; background: #ffffff; display: flex; gap: 8px; align-items: flex-end; border-top: 1px solid #ddd; }
-        textarea { 
-            flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; 
-            resize: none; height: 45px; max-height: 120px; overflow-y: auto; line-height: 1.4;
-        }
-        .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; flex-shrink: 0; }
-        
-        /* 1. Панели вурудро каме шаффоф мекунем (ё градиент медиҳем) */
-        .input-panel {
+        .input-panel { 
             padding: 10px;
-            background: linear-gradient(to top, rgba(255, 255, 255, 1) 90%, rgba(255, 255, 255, 0));
+            background: #ffffff;
             display: flex;
             gap: 8px;
             align-items: flex-end;
-            border-top: none; 
             position: sticky;
             bottom: 0;
             z-index: 10;
         }
-
-        /* 2. Ба чат-бокс эффект медиҳем, ки паёмҳо дар охир хира шаванд */
-        .chat-box {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background: #ffffff;
-            mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
+        textarea { 
+            flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; 
+            resize: none; height: 45px; max-height: 120px;
         }
+        .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; flex-shrink: 0; }
     </style>
 </head>
 <body>
+    <div class="header">TAJ CHAT</div>
     <div class="chat-box" id="chat-box"></div>
     <div class="input-panel">
         <textarea id="message-input" placeholder="Паём..."></textarea>
