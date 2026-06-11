@@ -2,192 +2,60 @@
 <html lang="tg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TAJ CHAT</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        // Танзимоти Firebase-и шумо
+        const firebaseConfig = {
+            apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
+            databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
+            projectId: "taj-chat-c87de"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const messagesRef = ref(db, 'messages');
+
+        // Функция барои ирсоли паём ба Firebase
+        window.sendMessage = () => {
+            const input = document.getElementById("message-input");
+            if (input.value.trim() !== "") {
+                push(messagesRef, { text: input.value, sender: 'me' });
+                input.value = "";
+            }
+        };
+
+        // Гӯш кардани паёмҳои нав аз база
+        onChildAdded(messagesRef, (data) => {
+            const msg = data.val();
+            const chatBox = document.getElementById("chat-box");
+            const div = document.createElement("div");
+            div.className = msg.sender === 'me' ? 'my-message' : 'received-message';
+            div.textContent = msg.text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    </script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent !important; outline: none !important; }
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background-color: #f0f2f5; 
-            height: 100dvh; 
-            display: flex; 
-            flex-direction: column; 
-            padding: 10px; 
-        }
-
-        .chat-container {
-            flex: 1;
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            /* Боло рост, поён гирд (0 0 20px 20px) */
-            border-radius: 0 0 20px 20px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            margin-bottom: 10px;
-        }
-
-        .chat-header {
-            padding: 15px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: #007bff;
-            border-bottom: 1px solid #f0f0f0;
-            background: #fafafa;
-        }
-
-        .chat-box { 
-            flex: 1; 
-            padding: 20px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px;
-        }
-        
-        .my-message { 
-            align-self: flex-end; 
-            background: #007bff; 
-            color: white; 
-            padding: 10px 14px; 
-            border-radius: 18px 18px 0 18px; 
-            max-width: 80%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .received-message { 
-            align-self: flex-start; 
-            background: #e9ecef; 
-            color: #333; 
-            padding: 10px 14px; 
-            border-radius: 18px 18px 18px 0; 
-            max-width: 80%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .date-separator { align-self: center; font-size: 11px; color: #888; background: #e9ecef; padding: 4px 10px; border-radius: 10px; margin: 10px 0; }
-        .message-time { font-size: 9px; margin-top: 4px; align-self: flex-end; opacity: 0.7; }
-        .received-message .message-time { align-self: flex-start; }
-
-        .input-panel { 
-            background: #ffffff; 
-            padding: 10px; 
-            display: flex; 
-            align-items: flex-end; 
-            gap: 10px; 
-            border-radius: 25px;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        textarea { 
-            flex: 1; border: none; padding: 12px 5px; font-size: 16px; 
-            background: transparent; resize: none; overflow-y: auto; 
-            height: 48px; max-height: 100px; line-height: 24px;
-        }
-        textarea::-webkit-scrollbar { display: none; }
-        textarea { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .btn { 
-            background: #ffffff; border: 2px solid #007bff; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; 
-            width: 48px; height: 48px; border-radius: 50%; transition: 0.3s;
-            flex-shrink: 0; overflow: hidden;
-        }
-        
-        .hidden { display: none !important; }
-        .icon { width: 60%; height: 60%; object-fit: contain; }
+        /* Услубҳои шумо */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f0f2f5; height: 100dvh; display: flex; flex-direction: column; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .my-message { align-self: flex-end; background: #007bff; color: white; padding: 10px; border-radius: 15px 15px 0 15px; max-width: 80%; }
+        .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 15px 15px 15px 0; max-width: 80%; }
+        .input-panel { padding: 10px; display: flex; gap: 8px; background: #fff; }
+        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; }
+        .btn { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #007bff; background: #fff; cursor: pointer; }
     </style>
 </head>
 <body>
-
-    <div class="chat-container">
-        <div class="chat-header">TAJ CHAT</div>
-        <div class="chat-box" id="chat-box"></div>
-    </div>
-    
+    <div class="chat-box" id="chat-box"></div>
     <div class="input-panel">
-        <button class="btn" onclick="addTestMessage()">
-            <img src="https://cdn-icons-gif.flaticon.com/19034/19034748.gif" class="icon">
-        </button>
-        
-        <textarea id="message-input" placeholder="Паём..." oninput="toggleButtons()"></textarea>
-        
-        <button class="btn" id="voice-btn">
-            <img src="https://cdn-icons-gif.flaticon.com/19017/19017655.gif" class="icon">
-        </button>
-        
-        <button class="btn hidden" id="send-btn" onclick="sendMessage()">
-            <img src="https://cdn-icons-gif.flaticon.com/8717/8717928.gif" class="icon">
-        </button>
+        <textarea id="message-input" placeholder="Паём..."></textarea>
+        <button class="btn" onclick="sendMessage()">➤</button>
     </div>
-
-<script>
-    let lastDate = "";
-
-    function getNowTime() {
-        return new Date().toLocaleTimeString('tg-TJ', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function addDateIfNeeded() {
-        const chatBox = document.getElementById("chat-box");
-        const dateString = new Date().toLocaleDateString('tg-TJ', { day: 'numeric', month: 'long' });
-        if (dateString !== lastDate) {
-            chatBox.innerHTML += `<div class="date-separator">${dateString}</div>`;
-            lastDate = dateString;
-        }
-    }
-
-    function toggleButtons() {
-        const input = document.getElementById("message-input");
-        const voiceBtn = document.getElementById("voice-btn");
-        const sendBtn = document.getElementById("send-btn");
-        if (input.value.trim().length > 0) {
-            voiceBtn.classList.add("hidden");
-            sendBtn.classList.remove("hidden");
-        } else {
-            voiceBtn.classList.remove("hidden");
-            sendBtn.classList.add("hidden");
-        }
-    }
-
-    function sendMessage() {
-        const input = document.getElementById("message-input");
-        const chatBox = document.getElementById("chat-box");
-        if (input.value.trim() !== "") {
-            addDateIfNeeded();
-            chatBox.innerHTML += `
-                <div class="my-message">
-                    ${input.value}
-                    <span class="message-time">${getNowTime()}</span>
-                </div>`;
-            input.value = "";
-            toggleButtons();
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-    }
-
-    function addTestMessage() {
-        addDateIfNeeded();
-        document.getElementById("chat-box").innerHTML += `
-            <div class="received-message">
-                Салом! Ин паёми ҳамсуҳбат аст.
-                <span class="message-time">${getNowTime()}</span>
-            </div>`;
-        document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-    }
-
-    const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    rec.lang = 'tg-TJ';
-    document.getElementById("voice-btn").onclick = () => rec.start();
-    rec.onresult = (e) => { 
-        document.getElementById('message-input').value = e.results[0][0].transcript;
-        toggleButtons();
-    };
-</script>
 </body>
 </html>
