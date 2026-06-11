@@ -97,7 +97,15 @@
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        body { 
+            font-family: sans-serif; 
+            background: #f0f0f0; 
+            height: 100dvh; 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden; 
+            -webkit-text-size-adjust: 100%;
+        }
         
         .header {
             background: #ffffff;
@@ -111,7 +119,16 @@
             border-radius: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
+        /* Аниматсия ва нуқтаҳои статус */
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
+        .green-dot { background: #28a745; margin-right: 10px; }
+        .yellow-dot { background: #ffc107; margin-left: 10px; }
 
         .chat-box { 
             flex: 1; 
@@ -125,44 +142,24 @@
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
         }
         
-        /* Ҷойгиркунии паёмҳо */
-        .my-message, .received-message { 
-            padding: 10px; 
-            max-width: 80%; 
-            word-wrap: break-word; 
-            margin-bottom: 5px;
-        }
-        .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; text-align: left; }
-        .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; text-align: left; }
+        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; }
+        .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; }
+        .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; }
         
         .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; margin: 10px 0; }
         .time-stamp { font-size: 0.6rem; color: #888; margin-top: 4px; text-align: right; }
         
-        .input-panel { 
-            padding: 10px;
-            background: #ffffff;
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
-        }
-        textarea { 
-            flex: 1; 
-            padding: 12px; 
-            border-radius: 20px; 
-            border: 1px solid #ddd; 
-            resize: none; 
-            height: 45px; 
-            max-height: 120px;
-            font-size: 16px; 
-        }
+        .input-panel { padding: 10px; background: #ffffff; display: flex; gap: 8px; align-items: flex-end; position: sticky; bottom: 0; z-index: 10; }
+        textarea { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; resize: none; height: 45px; max-height: 120px; font-size: 16px; }
         .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; flex-shrink: 0; }
     </style>
 </head>
 <body>
-    <div class="header">TAJ CHAT</div>
+    <div class="header">
+        <span class="status-dot yellow-dot"></span>
+        TAJ CHAT
+        <span class="status-dot green-dot"></span>
+    </div>
     <div class="chat-box" id="chat-box"></div>
     <div class="input-panel">
         <textarea id="message-input" placeholder="Паём..."></textarea>
