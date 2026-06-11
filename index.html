@@ -6,7 +6,7 @@
     <title>TAJ CHAT</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, remove, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
@@ -24,6 +24,8 @@
             localStorage.setItem("chat_user_id", myId);
         }
 
+        let selectedMessageKey = null;
+
         window.sendMessage = (textFromDrag = null) => {
             const input = document.getElementById("message-input");
             const textToSend = textFromDrag || input.value;
@@ -40,6 +42,24 @@
                     input.value = "";
                     input.style.height = "45px";
                 }
+            }
+        };
+
+        // Функсияҳои иловагӣ барои Edit ва Delete
+        window.closeModal = () => document.getElementById("action-modal").classList.remove("show");
+        
+        window.deleteMessage = () => {
+            if (selectedMessageKey) {
+                remove(ref(db, 'messages/' + selectedMessageKey));
+                closeModal();
+            }
+        };
+
+        window.editMessage = () => {
+            const newText = prompt("Матни навро ворид кунед:");
+            if (newText && selectedMessageKey) {
+                update(ref(db, 'messages/' + selectedMessageKey), { text: newText });
+                closeModal();
             }
         };
 
@@ -91,80 +111,40 @@
             const div = document.createElement("div");
             div.className = msg.senderId === myId ? 'my-message' : 'received-message';
             div.innerHTML = `<div>${msg.text}</div><div class="time-stamp">${msg.time}</div>`;
+            
+            // Илова кардани амалиёт барои клик
+            div.onclick = () => {
+                selectedMessageKey = data.key;
+                document.getElementById("action-modal").classList.add("show");
+            };
+
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         });
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        /* Ислоҳи CSS барои пешгирии зум дар ҳама браузерҳо */
-        body { 
-            font-family: sans-serif; 
-            background: #f0f0f0; 
-            height: 100dvh; 
-            display: flex; 
-            flex-direction: column;
-            overflow: hidden; 
-            -webkit-text-size-adjust: 100%;
-        }
+        body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-text-size-adjust: 100%; }
         
-        .header {
-            background: #ffffff;
-            color: #333;
-            padding: 15px;
-            margin: 10px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.2rem;
-            border: 1px solid #ddd;
-            border-radius: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            z-index: 20;
-        }
-
-        .chat-box { 
-            flex: 1; 
-            padding: 20px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
-            background: #ffffff;
-            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
-        }
+        .header { background: #ffffff; color: #333; padding: 15px; margin: 10px; text-align: center; font-weight: bold; font-size: 1.2rem; border: 1px solid #ddd; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 20; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #ffffff; mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); }
         
-        .my-message, .received-message { 
-            padding: 10px; max-width: 80%; 
-            word-wrap: break-word; 
-        }
+        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; cursor: pointer; }
         .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; }
         .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; }
         
         .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; margin: 10px 0; }
         .time-stamp { font-size: 0.6rem; color: #888; margin-top: 4px; text-align: right; }
         
-        .input-panel { 
-            padding: 10px;
-            background: #ffffff;
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
-        }
-        textarea { 
-            flex: 1; 
-            padding: 12px; 
-            border-radius: 20px; 
-            border: 1px solid #ddd; 
-            resize: none; 
-            height: 45px; 
-            max-height: 120px;
-            font-size: 16px; /* Муҳим: андозаи 16px зумро дар iPhone манъ мекунад */
-        }
+        .input-panel { padding: 10px; background: #ffffff; display: flex; gap: 8px; align-items: flex-end; position: sticky; bottom: 0; z-index: 10; }
+        textarea { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; resize: none; height: 45px; max-height: 120px; font-size: 16px; }
         .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; flex-shrink: 0; }
+
+        /* Styles барои Modal */
+        .modal { position: fixed; bottom: -200px; left: 0; width: 100%; background: white; border-radius: 20px 20px 0 0; transition: bottom 0.3s ease-in-out; padding: 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.2); z-index: 100; }
+        .modal.show { bottom: 0; }
+        .modal-content { display: flex; flex-direction: column; gap: 10px; }
+        .modal-content button { padding: 15px; border: none; background: #f0f0f0; border-radius: 10px; cursor: pointer; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -173,6 +153,14 @@
     <div class="input-panel">
         <textarea id="message-input" placeholder="Паём..."></textarea>
         <button class="btn" onclick="sendMessage()">➤</button>
+    </div>
+
+    <div id="action-modal" class="modal">
+        <div class="modal-content">
+            <button onclick="editMessage()">Тағйир додан</button>
+            <button onclick="deleteMessage()" style="color: red;">Нест кардан</button>
+            <button onclick="closeModal()">Бекор кардан</button>
+        </div>
     </div>
 </body>
 </html>
