@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT</title>
-    <script type="module">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
@@ -24,10 +24,9 @@
             localStorage.setItem("chat_user_id", myId);
         }
 
-        window.sendMessage = (textFromDrag = null) => {
+        window.sendMessage = () => {
             const input = document.getElementById("message-input");
-            const textToSend = textFromDrag || input.value;
-            
+            const textToSend = input.value;
             if (textToSend.trim() !== "") {
                 const now = new Date();
                 push(messagesRef, { 
@@ -36,75 +35,62 @@
                     time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     date: now.toLocaleDateString()
                 });
-                if (!textFromDrag) {
-                    input.value = "";
-                    input.style.height = "45px";
-                }
+                input.value = "";
+                input.style.height = "45px";
             }
         };
 
+        onChildRemoved(messagesRef, (data) => {
+            const element = document.getElementById(data.key);
+            if (element) element.remove();
+        });
+
+        let lastDate = ""; 
+        onChildAdded(messagesRef, (data) => {
+            const msg = data.val();
+            const msgKey = data.key;
+            const chatBox = document.getElementById("chat-box");
+            
+            const convertLinks = (text) => {
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue;">$1</a>');
+            };
+
+            if (msg.date !== lastDate) {
+                const dateDiv = document.createElement("div");
+                dateDiv.className = 'date-divider';
+                dateDiv.textContent = msg.date;
+                chatBox.appendChild(dateDiv);
+                lastDate = msg.date;
+            }
+            
+            const div = document.createElement("div");
+            div.id = msgKey;
+            div.className = msg.senderId === myId ? 'my-message' : 'received-message';
+            div.innerHTML = `<div>${convertLinks(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
+            
+            div.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                if (msg.senderId === myId) {
+                    if (confirm("Оё ин паёмро нест кардан мехоҳед?")) {
+                        remove(ref(db, 'messages/' + msgKey));
+                    }
+                } else {
+                    alert("Шумо танҳо паёмҳои худро нест карда метавонед!");
+                }
+            });
+            
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
         document.addEventListener("DOMContentLoaded", () => {
             const input = document.getElementById("message-input");
-            const chatBox = document.getElementById("chat-box");
-
             input.addEventListener("input", function() {
                 this.style.height = "auto";
                 this.style.height = (this.scrollHeight) + "px";
             });
-
-            input.setAttribute("draggable", "true");
-            input.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", input.value));
-            chatBox.addEventListener("dragover", (e) => e.preventDefault());
-            chatBox.addEventListener("drop", (e) => {
-                e.preventDefault();
-                const text = e.dataTransfer.getData("text/plain");
-                if (text) { 
-                    window.sendMessage(text); 
-                    input.value = ""; 
-                    input.style.height = "45px";
-                }
-            });
-
-            let touchStartY = 0;
-            input.addEventListener("touchstart", (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
-            input.addEventListener("touchend", (e) => {
-                const touchEndY = e.changedTouches[0].clientY;
-                if (touchStartY - touchEndY > 50) {
-                    window.sendMessage(input.value);
-                    input.value = "";
-                    input.style.height = "45px";
-                }
-            }, { passive: true });
         });
-
-        let lastDate = ""; 
-onChildAdded(messagesRef, (data) => {
-    const msg = data.val();
-    const chatBox = document.getElementById("chat-box");
-    
-    // Функсия барои табдил додани ссылка ба линки кликшаванда
-    const convertLinks = (text) => {
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue; text-decoration: underline;">$1</a>');
-    };
-
-    if (msg.date !== lastDate) {
-        const dateDiv = document.createElement("div");
-        dateDiv.className = 'date-divider';
-        dateDiv.textContent = msg.date;
-        chatBox.appendChild(dateDiv);
-        lastDate = msg.date;
-    }
-    
-    const div = document.createElement("div");
-    div.className = msg.senderId === myId ? 'my-message' : 'received-message';
-    
-    // Истифодаи функсияи convertLinks дар ин ҷо
-    div.innerHTML = `<div>${convertLinks(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
-    
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-});
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
