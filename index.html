@@ -6,7 +6,7 @@
     <title>TAJ CHAT</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, onChildRemoved, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
@@ -43,11 +43,15 @@
             }
         };
 
+        // Функсия барои нест кардани паём
+        window.deleteMessage = (key) => {
+            remove(ref(db, 'messages/' + key));
+        };
+
         document.addEventListener("DOMContentLoaded", () => {
             const input = document.getElementById("message-input");
             const chatBox = document.getElementById("chat-box");
 
-            // Ирсол бо тугмаи Enter
             input.addEventListener("keypress", (e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -59,26 +63,14 @@
                 this.style.height = "auto";
                 this.style.height = (this.scrollHeight) + "px";
             });
-
-            // Драг ва дроп
-            input.setAttribute("draggable", "true");
-            input.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", input.value));
-            chatBox.addEventListener("dragover", (e) => e.preventDefault());
-            chatBox.addEventListener("drop", (e) => {
-                e.preventDefault();
-                const text = e.dataTransfer.getData("text/plain");
-                if (text) { 
-                    window.sendMessage(text); 
-                    input.value = ""; 
-                    input.style.height = "45px";
-                }
-            });
         });
 
         let lastDate = ""; 
         onChildAdded(messagesRef, (data) => {
             const msg = data.val();
+            const msgKey = data.key;
             const chatBox = document.getElementById("chat-box");
+
             if (msg.date !== lastDate) {
                 const dateDiv = document.createElement("div");
                 dateDiv.className = 'date-divider';
@@ -86,11 +78,26 @@
                 chatBox.appendChild(dateDiv);
                 lastDate = msg.date;
             }
+
             const div = document.createElement("div");
             div.className = msg.senderId === myId ? 'my-message' : 'received-message';
-            div.innerHTML = `<div>${msg.text}</div><div class="time-stamp">${msg.time}</div>`;
+            div.id = `msg-${msgKey}`; // ID барои пайдо кардани паём
+
+            // Тугмаи нест кардан танҳо барои паёмҳои шахсӣ
+            let deleteBtn = "";
+            if (msg.senderId === myId) {
+                deleteBtn = `<span style="cursor:pointer; margin-left:8px; color:#ff4d4d; font-weight:bold;" onclick="deleteMessage('${msgKey}')">×</span>`;
+            }
+
+            div.innerHTML = `<div>${msg.text} ${deleteBtn}</div><div class="time-stamp">${msg.time}</div>`;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // Нест кардани элемент аз экран ҳангоми аз база нест шудан
+        onChildRemoved(messagesRef, (data) => {
+            const el = document.getElementById(`msg-${data.key}`);
+            if (el) el.remove();
         });
     </script>
     <style>
@@ -98,7 +105,7 @@
         body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         .header { flex: 0 0 auto; background: #ffffff; color: #333; padding: 15px; margin: 10px; text-align: center; font-weight: bold; border-radius: 15px; border: 1px solid #ddd; }
         .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #ffffff; }
-        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; }
+        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; position: relative; }
         .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; }
         .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; }
         .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; margin: 10px 0; }
