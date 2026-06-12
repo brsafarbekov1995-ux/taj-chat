@@ -4,185 +4,186 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT</title>
- <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
-        databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
-        projectId: "taj-chat-c87de"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
+            databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
+            projectId: "taj-chat-c87de"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const messagesRef = ref(db, 'messages');
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const messagesRef = ref(db, 'messages');
 
-    let myId = localStorage.getItem("chat_user_id");
-    if (!myId) {
-        myId = "user_" + Math.floor(Math.random() * 1000000);
-        localStorage.setItem("chat_user_id", myId);
-    }
-
-    const menu = document.getElementById("custom-menu");
-    const editModal = document.getElementById("edit-modal");
-    let activeMsgId = null;
-
-    // Функсия барои табдил додани матн ба ссылка
-    const linkify = (text) => {
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue; text-decoration: underline;">$1</a>');
-    };
-
-    document.addEventListener("click", (e) => {
-        if (!e.target.closest('#custom-menu') && !e.target.closest('#edit-modal')) {
-            menu.style.display = "none";
+        let myId = localStorage.getItem("chat_user_id");
+        if (!myId) {
+            myId = "user_" + Math.floor(Math.random() * 1000000);
+            localStorage.setItem("chat_user_id", myId);
         }
-    });
 
-    window.sendMessage = () => {
-        const input = document.getElementById("message-input");
-        const textToSend = input.value;
-        if (textToSend.trim() !== "") {
-            const now = new Date();
-            push(messagesRef, { 
-                text: textToSend, 
-                senderId: myId, 
-                time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                date: now.toLocaleDateString()
-            });
-            input.value = "";
-        }
-    };
+        let selectedMessages = []; // Барои интихоби якчанд паём
+        const menu = document.getElementById("custom-menu");
+        const editModal = document.getElementById("edit-modal");
 
-    window.openMenu = (e, msgKey) => {
-        e.preventDefault();
-        activeMsgId = msgKey;
-        menu.style.display = "block";
-        menu.style.left = e.pageX + "px";
-        menu.style.top = e.pageY + "px";
-    };
+        const linkify = (text) => {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue; text-decoration: underline;">$1</a>');
+        };
 
-    window.copyMessage = () => {
-        const el = document.getElementById(activeMsgId);
-        if (el) {
-            const textToCopy = el.querySelector('.msg-text').innerText;
-            navigator.clipboard.writeText(textToCopy);
-        }
-        menu.style.display = "none";
-    };
+        // Функсияи интихоби паём
+        window.toggleSelect = (msgKey, element) => {
+            if (selectedMessages.includes(msgKey)) {
+                selectedMessages = selectedMessages.filter(id => id !== msgKey);
+                element.classList.remove('selected-message');
+            } else {
+                selectedMessages.push(msgKey);
+                element.classList.add('selected-message');
+            }
+        };
 
-    window.openEditModal = () => {
-        const el = document.getElementById(activeMsgId);
-        if (el) {
-            document.getElementById("edit-input").value = el.querySelector('.msg-text').innerText;
-            editModal.style.display = "flex";
-        }
-        menu.style.display = "none";
-    };
+        // Кушодани меню тавассути 3 нуқта
+        window.openMenuAtTop = (e) => {
+            e.stopPropagation();
+            if (selectedMessages.length === 0) {
+                alert("Лутфан аввал паёмеро интихоб кунед!");
+                return;
+            }
+            menu.style.display = "block";
+            menu.style.right = "20px";
+            menu.style.top = "60px";
+        };
 
-    window.saveEdit = () => {
-        const newText = document.getElementById("edit-input").value;
-        if (newText && activeMsgId) {
-            update(ref(db, 'messages/' + activeMsgId), { text: newText });
-        }
-        editModal.style.display = "none";
-    };
-
-    window.deleteForMe = () => {
-        const el = document.getElementById(activeMsgId);
-        if (el) el.style.display = "none";
-        menu.style.display = "none";
-    };
-
-    window.deleteForEveryone = () => {
-        if (activeMsgId) remove(ref(db, 'messages/' + activeMsgId));
-        menu.style.display = "none";
-    };
-
-    // Навсозии паём ҳангоми таҳрир
-    onValue(messagesRef, (snapshot) => {
-        snapshot.forEach((child) => {
-            const el = document.getElementById(child.key);
-            if (el) {
-                el.querySelector('.msg-text').innerHTML = linkify(child.val().text);
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest('#custom-menu') && !e.target.closest('#edit-modal') && !e.target.closest('#menu-trigger')) {
+                menu.style.display = "none";
             }
         });
-    });
 
-    onChildRemoved(messagesRef, (data) => {
-        const el = document.getElementById(data.key);
-        if (el) el.remove();
-    });
+        window.sendMessage = () => {
+            const input = document.getElementById("message-input");
+            const textToSend = input.value;
+            if (textToSend.trim() !== "") {
+                const now = new Date();
+                push(messagesRef, { 
+                    text: textToSend, 
+                    senderId: myId, 
+                    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    date: now.toLocaleDateString()
+                });
+                input.value = "";
+            }
+        };
 
-    let lastDate = "";
-    onChildAdded(messagesRef, (data) => {
-        const msg = data.val();
-        const chatBox = document.getElementById("chat-box");
-        
-        if (msg.date !== lastDate) {
-            const dateDiv = document.createElement("div");
-            dateDiv.className = 'date-divider';
-            dateDiv.textContent = msg.date;
-            chatBox.appendChild(dateDiv);
-            lastDate = msg.date;
-        }
-        
-        const div = document.createElement("div");
-        div.id = data.key;
-        div.className = msg.senderId === myId ? 'my-message' : 'received-message';
-        div.innerHTML = `<div class="msg-text">${linkify(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
-        div.oncontextmenu = (e) => window.openMenu(e, data.key);
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
-</script>
+        window.copyMessage = () => {
+            if (selectedMessages.length > 0) {
+                const el = document.getElementById(selectedMessages[0]);
+                navigator.clipboard.writeText(el.querySelector('.msg-text').innerText);
+            }
+            menu.style.display = "none";
+        };
+
+        window.openEditModal = () => {
+            if (selectedMessages.length > 0) {
+                const el = document.getElementById(selectedMessages[0]);
+                document.getElementById("edit-input").value = el.querySelector('.msg-text').innerText;
+                editModal.style.display = "flex";
+            }
+            menu.style.display = "none";
+        };
+
+        window.saveEdit = () => {
+            const newText = document.getElementById("edit-input").value;
+            if (newText && selectedMessages.length > 0) {
+                update(ref(db, 'messages/' + selectedMessages[0]), { text: newText });
+            }
+            editModal.style.display = "none";
+        };
+
+        window.deleteSelected = (type) => {
+            selectedMessages.forEach(msgKey => {
+                if (type === 'me') {
+                    const el = document.getElementById(msgKey);
+                    if (el) el.style.display = "none";
+                } else if (type === 'everyone') {
+                    remove(ref(db, 'messages/' + msgKey));
+                }
+            });
+            selectedMessages = [];
+            document.querySelectorAll('.selected-message').forEach(el => el.classList.remove('selected-message'));
+            menu.style.display = "none";
+        };
+
+        window.clearMyChat = () => {
+            if (confirm("Оё боварӣ доред, ки чатро тоза мекунед?")) {
+                document.getElementById("chat-box").innerHTML = "";
+                menu.style.display = "none";
+            }
+        };
+
+        onValue(messagesRef, (snapshot) => {
+            snapshot.forEach((child) => {
+                const el = document.getElementById(child.key);
+                if (el) el.querySelector('.msg-text').innerHTML = linkify(child.val().text);
+            });
+        });
+
+        onChildRemoved(messagesRef, (data) => {
+            const el = document.getElementById(data.key);
+            if (el) el.remove();
+        });
+
+        onChildAdded(messagesRef, (data) => {
+            const msg = data.val();
+            const chatBox = document.getElementById("chat-box");
+            const div = document.createElement("div");
+            div.id = data.key;
+            div.className = msg.senderId === myId ? 'my-message' : 'received-message';
+            div.innerHTML = `<div class="msg-text">${linkify(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
+            div.onclick = () => window.toggleSelect(data.key, div);
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .header { background: #fff; padding: 15px; margin: 10px; text-align: center; font-weight: bold; border-radius: 15px; border: 1px solid #ddd; }
+        .header { background: #fff; padding: 15px; margin: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border-radius: 15px; border: 1px solid #ddd; }
+        #menu-trigger { cursor: pointer; font-size: 24px; padding: 0 10px; }
+        .selected-message { background-color: #add8e6 !important; border: 2px solid #007bff !important; }
         .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #fff; }
-        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; cursor: pointer; }
-        .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; }
-        .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; }
-        .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; }
-        .time-stamp { font-size: 0.6rem; color: #888; text-align: right; }
+        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; cursor: pointer; border-radius: 15px; }
+        .my-message { align-self: flex-end; background: #dcf8c6; }
+        .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; }
         
-        /* Стили менюи контекстӣ */
-        #custom-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; width: 220px; padding: 8px 0; overflow: hidden; }
-        #custom-menu button { display: block; width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 15px; transition: background 0.2s; }
+        #custom-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; width: 220px; padding: 8px 0; }
+        #custom-menu button { display: block; width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 15px; }
         #custom-menu button:hover { background: #f0f0f0; }
-        
-        /* Стили равзанаи таҳрир */
+
         #edit-modal { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 2000; }
         .modal-content { background: white; padding: 20px; border-radius: 15px; width: 85%; }
         .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
         .modal-buttons button { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        
+
         .input-panel { padding: 10px; background: #fff; display: flex; gap: 8px; border-top: 1px solid #ddd; }
         textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; height: 45px; resize: none; }
         .btn { width: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; }
-		.msg-text a {
-    color: #007bff; /* Ранги ссылка */
-    text-decoration: underline;
-    pointer-events: auto; /* Ин кафолат медиҳад, ки клик кор мекунад */
-    cursor: pointer;
-    z-index: 100;
-    position: relative;
-}
     </style>
 </head>
 <body>
     <div id="custom-menu">
         <button onclick="copyMessage()">📋 Нусха кардан</button>
         <button onclick="openEditModal()">✏️ Таҳрир</button>
-        <button onclick="deleteForMe()">👁️ Нест кардан (аз худам)</button>
-        <button onclick="deleteForEveryone()" style="color: red; border-top: 1px solid #eee;">🗑️ Нест кардан (аз ҳама)</button>
+        <button onclick="deleteSelected('me')">👁️ Нест кардан (аз худам)</button>
+        <button onclick="deleteSelected('everyone')" style="color: red;">🗑️ Нест кардан (аз ҳама)</button>
+        <button onclick="clearMyChat()" style="color: orange; border-top: 1px solid #eee;">🧹 Тоза кардани чат (аз худам)</button>
     </div>
 
     <div id="edit-modal">
         <div class="modal-content">
-            <textarea id="edit-input" style="width: 100%; height: 80px; padding:10px; border-radius:10px; border:1px solid #ddd;"></textarea>
+            <textarea id="edit-input" style="width: 100%; height: 80px;"></textarea>
             <div class="modal-buttons">
                 <button onclick="document.getElementById('edit-modal').style.display='none'" style="background:#e0e0e0;">Бекор</button>
                 <button onclick="saveEdit()" style="background:#007bff; color:white;">Сабт кардан</button>
@@ -190,8 +191,14 @@
         </div>
     </div>
 
-    <div class="header">TAJ CHAT</div>
+    <div class="header">
+        <span></span>
+        <div>TAJ CHAT</div>
+        <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
+    </div>
+    
     <div class="chat-box" id="chat-box"></div>
+    
     <div class="input-panel">
         <textarea id="message-input" placeholder="Паём..."></textarea>
         <button class="btn" onclick="sendMessage()">➤</button>
