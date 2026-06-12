@@ -6,7 +6,7 @@
     <title>TAJ CHAT</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
@@ -24,7 +24,17 @@
             localStorage.setItem("chat_user_id", myId);
         }
 
-        // Функсияи ирсоли паём
+        const menu = document.getElementById("custom-menu");
+        const editModal = document.getElementById("edit-modal");
+        let activeMsgId = null;
+
+        // Пӯшидани меню бо клик дар ҳама ҷо
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest('#custom-menu') && !e.target.closest('#edit-modal')) {
+                menu.style.display = "none";
+            }
+        });
+
         window.sendMessage = () => {
             const input = document.getElementById("message-input");
             const textToSend = input.value;
@@ -41,18 +51,34 @@
             }
         };
 
-        // Логикаи менюи махсус
-        const menu = document.getElementById("custom-menu");
-        let activeMsgId = null;
+        window.openMenu = (e, msgKey) => {
+            e.preventDefault();
+            activeMsgId = msgKey;
+            menu.style.display = "block";
+            
+            let x = e.pageX;
+            let y = e.pageY;
+            // Адаптация барои берун нарафтан аз экран
+            if (x + menu.offsetWidth > window.innerWidth) x = window.innerWidth - menu.offsetWidth - 10;
+            if (y + menu.offsetHeight > window.innerHeight) y = window.innerHeight - menu.offsetHeight - 10;
 
-        document.addEventListener("click", () => menu.style.display = "none");
+            menu.style.left = x + "px";
+            menu.style.top = y + "px";
+        };
 
-        window.editMessage = () => {
-            const newText = prompt("Таҳрири паём:");
-            if (newText !== null && activeMsgId) {
+        window.openEditModal = () => {
+            const currentText = document.getElementById(activeMsgId).querySelector('.msg-text').innerText;
+            document.getElementById("edit-input").value = currentText;
+            editModal.style.display = "flex";
+            menu.style.display = "none";
+        };
+
+        window.saveEdit = () => {
+            const newText = document.getElementById("edit-input").value;
+            if (newText && activeMsgId) {
                 update(ref(db, 'messages/' + activeMsgId), { text: newText });
             }
-            menu.style.display = "none";
+            editModal.style.display = "none";
         };
 
         window.deleteForMe = () => {
@@ -66,22 +92,22 @@
             menu.style.display = "none";
         };
 
-        onChildRemoved(messagesRef, (data) => {
-            const element = document.getElementById(data.key);
-            if (element) element.remove();
+        onValue(messagesRef, (snapshot) => {
+            snapshot.forEach((child) => {
+                const el = document.getElementById(child.key);
+                if (el) el.querySelector('.msg-text').innerText = child.val().text;
+            });
         });
 
-        let lastDate = ""; 
+        onChildRemoved(messagesRef, (data) => {
+            const el = document.getElementById(data.key);
+            if (el) el.remove();
+        });
+
+        let lastDate = "";
         onChildAdded(messagesRef, (data) => {
             const msg = data.val();
-            const msgKey = data.key;
             const chatBox = document.getElementById("chat-box");
-            
-            const convertLinks = (text) => {
-                const urlRegex = /(https?:\/\/[^\s]+)/g;
-                return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue; text-decoration: underline;">$1</a>');
-            };
-
             if (msg.date !== lastDate) {
                 const dateDiv = document.createElement("div");
                 dateDiv.className = 'date-divider';
@@ -91,63 +117,53 @@
             }
             
             const div = document.createElement("div");
-            div.id = msgKey;
+            div.id = data.key;
             div.className = msg.senderId === myId ? 'my-message' : 'received-message';
-            div.innerHTML = `<div>${convertLinks(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
-            
-            // Менюи махсус дар пахши дароз
-            div.oncontextmenu = (e) => {
-                e.preventDefault();
-                activeMsgId = msgKey;
-                menu.style.top = e.pageY + "px";
-                menu.style.left = e.pageX + "px";
-                menu.style.display = "block";
-            };
-            
+            div.innerHTML = `<div class="msg-text">${msg.text}</div><div class="time-stamp">${msg.time}</div>`;
+            div.oncontextmenu = (e) => window.openMenu(e, data.key);
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
-        });
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const input = document.getElementById("message-input");
-            input.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    window.sendMessage();
-                }
-            });
-            input.addEventListener("input", function() {
-                this.style.height = "auto";
-                this.style.height = (this.scrollHeight) + "px";
-            });
         });
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-text-size-adjust: 100%; }
-        .header { background: #ffffff; color: #333; padding: 15px; margin: 10px; text-align: center; font-weight: bold; font-size: 1.2rem; border: 1px solid #ddd; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 20; }
-        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #ffffff; }
+        body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: #fff; padding: 15px; margin: 10px; text-align: center; font-weight: bold; border-radius: 15px; border: 1px solid #ddd; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #fff; }
         .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; cursor: pointer; }
         .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; }
         .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; }
-        .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; margin: 10px 0; }
-        .time-stamp { font-size: 0.6rem; color: #888; margin-top: 4px; text-align: right; }
+        .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; }
+        .time-stamp { font-size: 0.6rem; color: #888; text-align: right; }
         
-        /* Менюи махсус */
-        #custom-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1000; width: 200px; }
-        #custom-menu button { display: block; width: 100%; padding: 12px; border: none; background: none; text-align: left; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; }
+        #custom-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; width: 200px; }
+        #custom-menu button { display: block; width: 100%; padding: 12px; border: none; background: none; text-align: left; cursor: pointer; border-bottom: 1px solid #eee; }
         
-        .input-panel { padding: 10px; background: #ffffff; display: flex; gap: 8px; align-items: flex-end; position: sticky; bottom: 0; z-index: 10; border-top: 1px solid #ddd; }
-        textarea { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; resize: none; height: 45px; max-height: 120px; font-size: 16px; }
-        .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; flex-shrink: 0; }
+        #edit-modal { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; width: 85%; }
+        
+        .input-panel { padding: 10px; background: #fff; display: flex; gap: 8px; border-top: 1px solid #ddd; }
+        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; height: 45px; resize: none; }
+        .btn { width: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="custom-menu">
-        <button onclick="editMessage()">✏️ Таҳрир</button>
+        <button onclick="openEditModal()">✏️ Таҳрир</button>
         <button onclick="deleteForMe()">👁️ Нест кардан (аз худам)</button>
         <button onclick="deleteForEveryone()" style="color: red;">🗑️ Нест кардан (аз ҳама)</button>
     </div>
+
+    <div id="edit-modal">
+        <div class="modal-content">
+            <textarea id="edit-input" style="width: 100%; height: 80px;"></textarea>
+            <div style="margin-top:10px;">
+                <button onclick="saveEdit()">Сабт</button>
+                <button onclick="document.getElementById('edit-modal').style.display='none'">Бекор</button>
+            </div>
+        </div>
+    </div>
+
     <div class="header">TAJ CHAT</div>
     <div class="chat-box" id="chat-box"></div>
     <div class="input-panel">
