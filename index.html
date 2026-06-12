@@ -4,158 +4,202 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT</title>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+ <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
-            databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
-            projectId: "taj-chat-c87de"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
+        databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
+        projectId: "taj-chat-c87de"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const messagesRef = ref(db, 'messages');
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const messagesRef = ref(db, 'messages');
 
-        let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
+    let myId = localStorage.getItem("chat_user_id");
+    if (!myId) {
+        myId = "user_" + Math.floor(Math.random() * 1000000);
         localStorage.setItem("chat_user_id", myId);
+    }
 
-        let selectedMessages = new Set();
-        let activeMsgId = null;
+    const menu = document.getElementById("custom-menu");
+    const editModal = document.getElementById("edit-modal");
+    let activeMsgId = null;
 
-        const linkify = (text) => {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue; text-decoration: underline;">$1</a>');
-        };
+    // Функсия барои табдил додани матн ба ссылка
+    const linkify = (text) => {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue; text-decoration: underline;">$1</a>');
+    };
 
-        const toggleHeaderMenu = () => {
-            document.getElementById("three-dots").style.display = selectedMessages.size > 0 ? "inline-block" : "none";
-        };
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest('#custom-menu') && !e.target.closest('#edit-modal')) {
+            menu.style.display = "none";
+        }
+    });
 
-        window.sendMessage = () => {
-            const input = document.getElementById("message-input");
-            if (input.value.trim() !== "") {
-                const now = new Date();
-                push(messagesRef, { text: input.value, senderId: myId, time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: now.toLocaleDateString() });
-                input.value = "";
-            }
-        };
+    window.sendMessage = () => {
+        const input = document.getElementById("message-input");
+        const textToSend = input.value;
+        if (textToSend.trim() !== "") {
+            const now = new Date();
+            push(messagesRef, { 
+                text: textToSend, 
+                senderId: myId, 
+                time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: now.toLocaleDateString()
+            });
+            input.value = "";
+        }
+    };
 
-        // Менюи боло барои паёмҳои интихобшуда
-        window.showHeaderMenu = (e) => {
-            const menu = document.getElementById("custom-menu");
-            activeMsgId = null; // Ин барои интихоби дастаҷамъӣ
-            menu.style.display = "block";
-            menu.style.left = (e.pageX - 150) + "px";
-            menu.style.top = "50px";
-        };
+    window.openMenu = (e, msgKey) => {
+        e.preventDefault();
+        activeMsgId = msgKey;
+        menu.style.display = "block";
+        menu.style.left = e.pageX + "px";
+        menu.style.top = e.pageY + "px";
+    };
 
-        window.openMenu = (e, msgKey) => {
-            e.preventDefault();
-            activeMsgId = msgKey;
-            const menu = document.getElementById("custom-menu");
-            menu.style.display = "block";
-            menu.style.left = e.pageX + "px";
-            menu.style.top = e.pageY + "px";
-        };
+    window.copyMessage = () => {
+        const el = document.getElementById(activeMsgId);
+        if (el) {
+            const textToCopy = el.querySelector('.msg-text').innerText;
+            navigator.clipboard.writeText(textToCopy);
+        }
+        menu.style.display = "none";
+    };
 
-        window.copyMessage = () => {
-            const el = document.getElementById(activeMsgId);
-            if (el) navigator.clipboard.writeText(el.querySelector('.msg-text').innerText);
-            document.getElementById("custom-menu").style.display = "none";
-        };
+    window.openEditModal = () => {
+        const el = document.getElementById(activeMsgId);
+        if (el) {
+            document.getElementById("edit-input").value = el.querySelector('.msg-text').innerText;
+            editModal.style.display = "flex";
+        }
+        menu.style.display = "none";
+    };
 
-        window.openEditModal = () => {
-            const el = document.getElementById(activeMsgId);
+    window.saveEdit = () => {
+        const newText = document.getElementById("edit-input").value;
+        if (newText && activeMsgId) {
+            update(ref(db, 'messages/' + activeMsgId), { text: newText });
+        }
+        editModal.style.display = "none";
+    };
+
+    window.deleteForMe = () => {
+        const el = document.getElementById(activeMsgId);
+        if (el) el.style.display = "none";
+        menu.style.display = "none";
+    };
+
+    window.deleteForEveryone = () => {
+        if (activeMsgId) remove(ref(db, 'messages/' + activeMsgId));
+        menu.style.display = "none";
+    };
+
+    // Навсозии паём ҳангоми таҳрир
+    onValue(messagesRef, (snapshot) => {
+        snapshot.forEach((child) => {
+            const el = document.getElementById(child.key);
             if (el) {
-                document.getElementById("edit-input").value = el.querySelector('.msg-text').innerText;
-                document.getElementById("edit-modal").style.display = "flex";
+                el.querySelector('.msg-text').innerHTML = linkify(child.val().text);
             }
-            document.getElementById("custom-menu").style.display = "none";
-        };
-
-        window.saveEdit = () => {
-            const newText = document.getElementById("edit-input").value;
-            if (newText && activeMsgId) update(ref(db, 'messages/' + activeMsgId), { text: newText });
-            document.getElementById("edit-modal").style.display = "none";
-        };
-
-        window.deleteSelected = () => {
-            if (activeMsgId) {
-                remove(ref(db, 'messages/' + activeMsgId));
-            } else {
-                selectedMessages.forEach(id => remove(ref(db, 'messages/' + id)));
-                selectedMessages.clear();
-                toggleHeaderMenu();
-            }
-            document.getElementById("custom-menu").style.display = "none";
-        };
-
-        onChildAdded(messagesRef, (data) => {
-            const msg = data.val();
-            const div = document.createElement("div");
-            div.id = data.key;
-            div.className = msg.senderId === myId ? 'my-message' : 'received-message';
-            div.innerHTML = `<div class="msg-text">${linkify(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
-            
-            div.oncontextmenu = (e) => window.openMenu(e, data.key);
-            div.onclick = () => {
-                if (selectedMessages.has(data.key)) {
-                    selectedMessages.delete(data.key);
-                    div.classList.remove('message-selected');
-                } else {
-                    selectedMessages.add(data.key);
-                    div.classList.add('message-selected');
-                }
-                toggleHeaderMenu();
-            };
-            document.getElementById("chat-box").appendChild(div);
         });
+    });
 
-        onChildRemoved(messagesRef, (data) => {
-            const el = document.getElementById(data.key);
-            if (el) el.remove();
-        });
-    </script>
+    onChildRemoved(messagesRef, (data) => {
+        const el = document.getElementById(data.key);
+        if (el) el.remove();
+    });
+
+    let lastDate = "";
+    onChildAdded(messagesRef, (data) => {
+        const msg = data.val();
+        const chatBox = document.getElementById("chat-box");
+        
+        if (msg.date !== lastDate) {
+            const dateDiv = document.createElement("div");
+            dateDiv.className = 'date-divider';
+            dateDiv.textContent = msg.date;
+            chatBox.appendChild(dateDiv);
+            lastDate = msg.date;
+        }
+        
+        const div = document.createElement("div");
+        div.id = data.key;
+        div.className = msg.senderId === myId ? 'my-message' : 'received-message';
+        
+        // Мо дар ин ҷо div.oncontextmenu-ро нест кардем 
+        // ва ба ҷои он як span барои меню илова кардем
+        div.innerHTML = `
+            <div class="msg-text">${linkify(msg.text)}</div>
+            <div class="time-stamp">
+                ${msg.time} 
+                <span style="cursor:pointer; margin-left:5px; font-weight:bold;" 
+                      onclick="window.openMenu(event, '${data.key}')">⋮</span>
+            </div>`;
+        
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .header { background: #fff; padding: 15px; margin: 10px; text-align: center; font-weight: bold; border-radius: 15px; border: 1px solid #ddd; position: relative; }
-        #three-dots { position: absolute; right: 20px; cursor: pointer; display: none; font-size: 20px; }
+        .header { background: #fff; padding: 15px; margin: 10px; text-align: center; font-weight: bold; border-radius: 15px; border: 1px solid #ddd; }
         .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #fff; }
-        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; cursor: pointer; border-radius: 15px; }
-        .my-message { align-self: flex-end; background: #dcf8c6; }
-        .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; }
-        .message-selected { background: #b3d9ff !important; border: 2px solid #007bff !important; }
-        #custom-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; width: 200px; padding: 10px 0; }
-        #custom-menu button { display: block; width: 100%; padding: 10px 20px; border: none; background: none; text-align: left; cursor: pointer; }
+        .my-message, .received-message { padding: 10px; max-width: 80%; word-wrap: break-word; cursor: pointer; }
+        .my-message { align-self: flex-end; background: #dcf8c6; border-radius: 15px 15px 0 15px; }
+        .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; border-radius: 15px 15px 15px 0; }
+        .date-divider { align-self: center; background: #ccc; color: #fff; padding: 5px 15px; border-radius: 15px; font-size: 0.7rem; }
+        .time-stamp { font-size: 0.6rem; color: #888; text-align: right; }
+        
+        /* Стили менюи контекстӣ */
+        #custom-menu { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; width: 220px; padding: 8px 0; overflow: hidden; }
+        #custom-menu button { display: block; width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; font-size: 15px; transition: background 0.2s; }
+        #custom-menu button:hover { background: #f0f0f0; }
+        
+        /* Стили равзанаи таҳрир */
         #edit-modal { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 2000; }
         .modal-content { background: white; padding: 20px; border-radius: 15px; width: 85%; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        .modal-buttons button { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        
         .input-panel { padding: 10px; background: #fff; display: flex; gap: 8px; border-top: 1px solid #ddd; }
-        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; height: 45px; }
+        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; height: 45px; resize: none; }
         .btn { width: 45px; border-radius: 50%; border: none; background: #007bff; color: white; cursor: pointer; }
+		.msg-text a {
+    color: #007bff; /* Ранги ссылка */
+    text-decoration: underline;
+    pointer-events: auto; /* Ин кафолат медиҳад, ки клик кор мекунад */
+    cursor: pointer;
+    z-index: 100;
+    position: relative;
+}
     </style>
 </head>
 <body>
-    <div class="header">
-        TAJ CHAT 
-        <span id="three-dots" onclick="showHeaderMenu(event)">⋮</span>
-    </div>
-
     <div id="custom-menu">
         <button onclick="copyMessage()">📋 Нусха кардан</button>
         <button onclick="openEditModal()">✏️ Таҳрир</button>
-        <button onclick="deleteSelected()" style="color: red;">🗑️ Нест кардан</button>
+        <button onclick="deleteForMe()">👁️ Нест кардан (аз худам)</button>
+        <button onclick="deleteForEveryone()" style="color: red; border-top: 1px solid #eee;">🗑️ Нест кардан (аз ҳама)</button>
     </div>
 
     <div id="edit-modal">
         <div class="modal-content">
-            <textarea id="edit-input" style="width: 100%; height: 80px;"></textarea>
-            <button onclick="saveEdit()">Сабт кардан</button>
+            <textarea id="edit-input" style="width: 100%; height: 80px; padding:10px; border-radius:10px; border:1px solid #ddd;"></textarea>
+            <div class="modal-buttons">
+                <button onclick="document.getElementById('edit-modal').style.display='none'" style="background:#e0e0e0;">Бекор</button>
+                <button onclick="saveEdit()" style="background:#007bff; color:white;">Сабт кардан</button>
+            </div>
         </div>
     </div>
 
+    <div class="header">TAJ CHAT</div>
     <div class="chat-box" id="chat-box"></div>
     <div class="input-panel">
         <textarea id="message-input" placeholder="Паём..."></textarea>
