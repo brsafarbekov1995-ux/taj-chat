@@ -4,134 +4,139 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT</title>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+ <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
-            databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
-            projectId: "taj-chat-c87de"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
+        databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
+        projectId: "taj-chat-c87de"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const messagesRef = ref(db, 'messages');
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const messagesRef = ref(db, 'messages');
 
-        let myId = localStorage.getItem("chat_user_id");
-        if (!myId) {
-            myId = "user_" + Math.floor(Math.random() * 1000000);
-            localStorage.setItem("chat_user_id", myId);
+    let myId = localStorage.getItem("chat_user_id");
+    if (!myId) {
+        myId = "user_" + Math.floor(Math.random() * 1000000);
+        localStorage.setItem("chat_user_id", myId);
+    }
+
+    const menu = document.getElementById("custom-menu");
+    const editModal = document.getElementById("edit-modal");
+    let activeMsgId = null;
+
+    // Функсия барои табдил додани URL ба ссылка
+    const linkify = (text) => {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, '<a href="$1" target="_blank" style="color: blue; text-decoration: underline;">$1</a>');
+    };
+
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest('#custom-menu') && !e.target.closest('#edit-modal')) {
+            menu.style.display = "none";
         }
+    });
 
-        const menu = document.getElementById("custom-menu");
-        const editModal = document.getElementById("edit-modal");
-        let activeMsgId = null;
-
-        // Пӯшидани меню бо клик дар ҳама ҷо
-        document.addEventListener("click", (e) => {
-            if (!e.target.closest('#custom-menu') && !e.target.closest('#edit-modal')) {
-                menu.style.display = "none";
-            }
-        });
-
-        window.sendMessage = () => {
-            const input = document.getElementById("message-input");
-            const textToSend = input.value;
-            if (textToSend.trim() !== "") {
-                const now = new Date();
-                push(messagesRef, { 
-                    text: textToSend, 
-                    senderId: myId, 
-                    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    date: now.toLocaleDateString()
-                });
-                input.value = "";
-                input.style.height = "45px";
-            }
-        };
-
-        window.openMenu = (e, msgKey) => {
-            e.preventDefault();
-            activeMsgId = msgKey;
-            menu.style.display = "block";
-            
-            let x = e.pageX;
-            let y = e.pageY;
-            // Адаптация барои берун нарафтан аз экран
-            if (x + menu.offsetWidth > window.innerWidth) x = window.innerWidth - menu.offsetWidth - 10;
-            if (y + menu.offsetHeight > window.innerHeight) y = window.innerHeight - menu.offsetHeight - 10;
-
-            menu.style.left = x + "px";
-            menu.style.top = y + "px";
-        };
-
-        // Функсияи нусхабардорӣ
-        window.copyMessage = () => {
-            const textToCopy = document.getElementById(activeMsgId).querySelector('.msg-text').innerText;
-            navigator.clipboard.writeText(textToCopy);
-            menu.style.display = "none";
-        };
-
-        window.openEditModal = () => {
-            const currentText = document.getElementById(activeMsgId).querySelector('.msg-text').innerText;
-            document.getElementById("edit-input").value = currentText;
-            editModal.style.display = "flex";
-            menu.style.display = "none";
-        };
-
-        window.saveEdit = () => {
-            const newText = document.getElementById("edit-input").value;
-            if (newText && activeMsgId) {
-                update(ref(db, 'messages/' + activeMsgId), { text: newText });
-            }
-            editModal.style.display = "none";
-        };
-
-        window.deleteForMe = () => {
-            const el = document.getElementById(activeMsgId);
-            if (el) el.style.display = "none";
-            menu.style.display = "none";
-        };
-
-        window.deleteForEveryone = () => {
-            if (activeMsgId) remove(ref(db, 'messages/' + activeMsgId));
-            menu.style.display = "none";
-        };
-
-        onValue(messagesRef, (snapshot) => {
-            snapshot.forEach((child) => {
-                const el = document.getElementById(child.key);
-                if (el) el.querySelector('.msg-text').innerText = child.val().text;
+    window.sendMessage = () => {
+        const input = document.getElementById("message-input");
+        const textToSend = input.value;
+        if (textToSend.trim() !== "") {
+            const now = new Date();
+            push(messagesRef, { 
+                text: textToSend, 
+                senderId: myId, 
+                time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: now.toLocaleDateString()
             });
-        });
+            input.value = "";
+            input.style.height = "45px";
+        }
+    };
 
-        onChildRemoved(messagesRef, (data) => {
-            const el = document.getElementById(data.key);
-            if (el) el.remove();
-        });
+    window.openMenu = (e, msgKey) => {
+        e.preventDefault();
+        activeMsgId = msgKey;
+        menu.style.display = "block";
+        let x = e.pageX;
+        let y = e.pageY;
+        if (x + menu.offsetWidth > window.innerWidth) x = window.innerWidth - menu.offsetWidth - 10;
+        if (y + menu.offsetHeight > window.innerHeight) y = window.innerHeight - menu.offsetHeight - 10;
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+    };
 
-        let lastDate = "";
-        onChildAdded(messagesRef, (data) => {
-            const msg = data.val();
-            const chatBox = document.getElementById("chat-box");
-            if (msg.date !== lastDate) {
-                const dateDiv = document.createElement("div");
-                dateDiv.className = 'date-divider';
-                dateDiv.textContent = msg.date;
-                chatBox.appendChild(dateDiv);
-                lastDate = msg.date;
+    window.copyMessage = () => {
+        const textToCopy = document.getElementById(activeMsgId).querySelector('.msg-text').innerText;
+        navigator.clipboard.writeText(textToCopy);
+        menu.style.display = "none";
+    };
+
+    window.openEditModal = () => {
+        const currentText = document.getElementById(activeMsgId).querySelector('.msg-text').innerText;
+        document.getElementById("edit-input").value = currentText;
+        editModal.style.display = "flex";
+        menu.style.display = "none";
+    };
+
+    window.saveEdit = () => {
+        const newText = document.getElementById("edit-input").value;
+        if (newText && activeMsgId) {
+            update(ref(db, 'messages/' + activeMsgId), { text: newText });
+        }
+        editModal.style.display = "none";
+    };
+
+    window.deleteForMe = () => {
+        const el = document.getElementById(activeMsgId);
+        if (el) el.style.display = "none";
+        menu.style.display = "none";
+    };
+
+    window.deleteForEveryone = () => {
+        if (activeMsgId) remove(ref(db, 'messages/' + activeMsgId));
+        menu.style.display = "none";
+    };
+
+    // Навсозии паём ҳангоми таҳрир
+    onValue(messagesRef, (snapshot) => {
+        snapshot.forEach((child) => {
+            const el = document.getElementById(child.key);
+            if (el) {
+                el.querySelector('.msg-text').innerHTML = linkify(child.val().text);
             }
-            
-            const div = document.createElement("div");
-            div.id = data.key;
-            div.className = msg.senderId === myId ? 'my-message' : 'received-message';
-            div.innerHTML = `<div class="msg-text">${msg.text}</div><div class="time-stamp">${msg.time}</div>`;
-            div.oncontextmenu = (e) => window.openMenu(e, data.key);
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
         });
-    </script>
+    });
+
+    onChildRemoved(messagesRef, (data) => {
+        const el = document.getElementById(data.key);
+        if (el) el.remove();
+    });
+
+    let lastDate = "";
+    onChildAdded(messagesRef, (data) => {
+        const msg = data.val();
+        const chatBox = document.getElementById("chat-box");
+        if (msg.date !== lastDate) {
+            const dateDiv = document.createElement("div");
+            dateDiv.className = 'date-divider';
+            dateDiv.textContent = msg.date;
+            chatBox.appendChild(dateDiv);
+            lastDate = msg.date;
+        }
+        
+        const div = document.createElement("div");
+        div.id = data.key;
+        div.className = msg.senderId === myId ? 'my-message' : 'received-message';
+        // Истифодаи .innerHTML ва linkify барои коркарди ссылкаҳо
+        div.innerHTML = `<div class="msg-text">${linkify(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
+        div.oncontextmenu = (e) => window.openMenu(e, data.key);
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background: #f0f0f0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
