@@ -2,7 +2,7 @@
 <html lang="tg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>TAJ CHAT</title>
  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
@@ -177,6 +177,9 @@
     cursor: pointer;
     z-index: 100;
     position: relative;
+}
+* {
+    touch-action: manipulation;
 }
     </style>
 </head>
