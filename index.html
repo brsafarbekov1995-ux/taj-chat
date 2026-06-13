@@ -116,25 +116,17 @@
                     cancelAudio();
                 };
             } else {
-               // Агар матн бошад
-if (inputArea.value.trim() !== "") {
-    const now = new Date();
-    push(messagesRef, { 
-        text: inputArea.value, 
-        senderId: myId, 
-        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: now.toLocaleDateString()
-    });
-    
-    // 1. Майдонро холӣ мекунем
-    inputArea.value = "";
-    
-    // 2. Тугмаи ирсолро пинҳон мекунем
-    sendBtn.style.display = "none";
-    
-    // 3. Микрофонро дубора бармегардонем
-    micBtn.style.display = "flex";
-}
+                // Агар матн бошад
+                if (inputArea.value.trim() !== "") {
+                    const now = new Date();
+                    push(messagesRef, { 
+                        text: inputArea.value, 
+                        senderId: myId, 
+                        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        date: now.toLocaleDateString()
+                    });
+                    inputArea.value = "";
+                }
             }
         };
 
@@ -246,22 +238,7 @@ if (inputArea.value.trim() !== "") {
             const element = document.getElementById(data.key);
             if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
         });
-		// Пайдо кардани элементи textarea
-const messageInput = document.getElementById("message-input");
-
-// Функсия барои назорат кардани тугмаҳо
-messageInput.addEventListener("input", () => {
-    if (messageInput.value.trim().length > 0) {
-        // Агар матн бошад, тугмаи ирсолро нишон дода, микрофонро пинҳон кун
-        micBtn.style.display = "none";
-        sendBtn.style.display = "flex";
-    } else {
-        // Агар майдон холӣ бошад, микрофонро нишон дода, тугмаи ирсолро пинҳон кун
-        micBtn.style.display = "flex";
-        sendBtn.style.display = "none";
-    }
-}); 
-// Дар болои скрипт, дар баробари дигар тағйирёбандаҳо илова кунед:
+		// Дар болои скрипт, дар баробари дигар тағйирёбандаҳо илова кунед:
 let previewAudio = null; 
 
 // Ин функсияро ба ҷои playPreview иваз кунед:
@@ -378,11 +355,11 @@ window.cancelAudio = () => {
             <span id="record-timer" class="recording-blink">0:00</span>
         </div>
 
-        <div id="preview-ui">
-            <button onclick="playPreview()" class="btn" style="background:#25d366;">▶</button>
-            <span>Овози сабтшуда</span>
-            <button onclick="cancelAudio()" class="btn" style="background:red;">✕</button>
-        </div>
+       <div id="preview-ui">
+    <button onclick="togglePreview(this)" class="btn" style="background:#25d366;">▶</button>
+    <span>Овози сабтшуда</span>
+    <button onclick="cancelAudio()" class="btn" style="background:red;">✕</button>
+</div>
         
        <button id="mic-btn" class="btn">
     <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Mic" style="width: 24px; height: 24px;">
