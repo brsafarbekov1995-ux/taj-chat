@@ -303,38 +303,6 @@ messageInput.addEventListener("input", () => {
     filter: brightness(0) invert(1); /* Ин рангро сафед мекунад, то бо заминаи сурх мувофиқ бошад */
     pointer-events: none;
 }
-// ... дигар тағйирёбандаҳои шумо
-let lastDate = "";
-let selectedMessages = [];
-// ...
-let activeAudio = null; // Инро илова кунед
-
-window.toggleChatMessage = (audioUrl, btn) => {
-    if (activeAudio && activeAudio.src !== audioUrl) {
-        activeAudio.pause();
-        if (activeAudio.btnElement) {
-            activeAudio.btnElement.innerText = "▶";
-        }
-    }
-
-    if (!activeAudio || activeAudio.src !== audioUrl) {
-        activeAudio = new Audio(audioUrl);
-        activeAudio.btnElement = btn;
-    }
-
-    if (activeAudio.paused) {
-        activeAudio.play();
-        btn.innerText = "■";
-    } else {
-        activeAudio.pause();
-        btn.innerText = "▶";
-    }
-
-    activeAudio.onended = () => {
-        btn.innerText = "▶";
-        activeAudio.currentTime = 0;
-    };
-};
     </style>
 </head>
 <body>
