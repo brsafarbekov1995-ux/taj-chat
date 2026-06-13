@@ -276,6 +276,10 @@
     filter: brightness(0) invert(1); /* Ин рангро сафед мекунад, то бо тугмаи сабз мувофиқ шавад */
     pointer-events: none; /* Барои он ки клик ба худи тугма расад, на ба иконка */
 }
+#stop-btn img {
+    filter: brightness(0) invert(1); /* Ин рангро сафед мекунад, то бо заминаи сурх мувофиқ бошад */
+    pointer-events: none;
+}
     </style>
 </head>
 <body>
@@ -324,7 +328,9 @@
        <button id="mic-btn" class="btn">
     <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Mic" style="width: 24px; height: 24px;">
 </button>
-        <button id="stop-btn" class="btn" style="display:none; background:red;">⏹</button>
+   <button id="stop-btn" class="btn" style="display:none; background:red;">
+    <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Stop" style="width: 24px; height: 24px;">
+</button>
         <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
     </div>
 </body>
