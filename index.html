@@ -280,6 +280,17 @@ import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, o
             const element = document.getElementById(data.key);
             if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
         });
+		// ... (коди пештараи шумо) ...
+
+    // --- ТАШХИСИ ПАЙВАСТШАВӢ ---
+    console.log("Талоши пайвастшавӣ ба Firebase...");
+
+    onChildAdded(messagesRef, (data) => {
+        console.log("Паём бомуваффақият гирифта шуд:", data.val());
+        // ... (боқии коди `onChildAdded`-и шумо) ...
+    }, (error) => {
+        console.error("ХАТОГИИ ПАЙВАСТШАВӢ:", error);
+    });
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -319,7 +330,7 @@ import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, o
         @keyframes blink { 50% { opacity: 0; } }
         #mic-btn img { filter: brightness(0) invert(1); pointer-events: none; }
         #stop-btn img { filter: brightness(0) invert(1); pointer-events: none; }
-    </style>
+		    </style>
 </head>
 <body>
     <div id="custom-menu">
