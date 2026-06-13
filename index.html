@@ -238,40 +238,6 @@
             const element = document.getElementById(data.key);
             if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
         });
-		// Пайдо кардани элементҳо
-const messageInput = document.getElementById("message-input");
-const micBtn = document.getElementById("mic-btn");
-const sendBtn = document.getElementById("send-btn");
-
-// Функсия барои назорат кардани тугмаҳо ҳангоми навиштан
-messageInput.addEventListener("input", () => {
-    if (messageInput.value.trim().length > 0) {
-        // Агар дар textarea матн бошад, тугмаи ирсолро нишон деҳ ва микрофонро пинҳон кун
-        micBtn.style.display = "none";
-        sendBtn.style.display = "flex";
-    } else {
-        // Агар холӣ бошад, микрофонро нишон деҳ ва ирсолро пинҳон кун
-        micBtn.style.display = "flex";
-        sendBtn.style.display = "none";
-    }
-});
-// Дар дохили функсияи sendMessage, қисмати else (агар матн бошад):
-} else {
-    if (inputArea.value.trim() !== "") {
-        const now = new Date();
-        push(messagesRef, { 
-            text: inputArea.value, 
-            senderId: myId, 
-            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: now.toLocaleDateString()
-        });
-        inputArea.value = "";
-        
-        // Илова кунед:
-        sendBtn.style.display = "none";
-        micBtn.style.display = "flex";
-    }
-}
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
