@@ -116,17 +116,25 @@
                     cancelAudio();
                 };
             } else {
-                // Агар матн бошад
-                if (inputArea.value.trim() !== "") {
-                    const now = new Date();
-                    push(messagesRef, { 
-                        text: inputArea.value, 
-                        senderId: myId, 
-                        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        date: now.toLocaleDateString()
-                    });
-                    inputArea.value = "";
-                }
+               // Агар матн бошад
+if (inputArea.value.trim() !== "") {
+    const now = new Date();
+    push(messagesRef, { 
+        text: inputArea.value, 
+        senderId: myId, 
+        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: now.toLocaleDateString()
+    });
+    
+    // 1. Майдонро холӣ мекунем
+    inputArea.value = "";
+    
+    // 2. Тугмаи ирсолро пинҳон мекунем
+    sendBtn.style.display = "none";
+    
+    // 3. Микрофонро дубора бармегардонем
+    micBtn.style.display = "flex";
+}
             }
         };
 
@@ -238,6 +246,21 @@
             const element = document.getElementById(data.key);
             if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
         });
+		// Пайдо кардани элементи textarea
+const messageInput = document.getElementById("message-input");
+
+// Функсия барои назорат кардани тугмаҳо
+messageInput.addEventListener("input", () => {
+    if (messageInput.value.trim().length > 0) {
+        // Агар матн бошад, тугмаи ирсолро нишон дода, микрофонро пинҳон кун
+        micBtn.style.display = "none";
+        sendBtn.style.display = "flex";
+    } else {
+        // Агар майдон холӣ бошад, микрофонро нишон дода, тугмаи ирсолро пинҳон кун
+        micBtn.style.display = "flex";
+        sendBtn.style.display = "none";
+    }
+}); 
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
