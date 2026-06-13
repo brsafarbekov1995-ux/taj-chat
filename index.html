@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="tg">
 <head>
+<div id="audio-animation" style="display: none; ...">
+    <div class="wave"></div>
+    <div class="wave" style="animation-delay: 0.2s;"></div>
+    <div class="wave" style="animation-delay: 0.4s;"></div>
+    <span>0:02</span>
+</div>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT</title>
@@ -210,6 +216,27 @@ micBtn.addEventListener("click", () => {
         // Ин ҷо коди қатъ кардани сабтро илова кунед
     }
 });
+const input = document.getElementById("message-input");
+const micBtn = document.getElementById("mic-btn");
+const audioAnim = document.getElementById("audio-animation");
+
+micBtn.addEventListener("click", () => {
+    isRecording = !isRecording;
+
+    if (isRecording) {
+        // Пинҳон кардани textarea ва нишон додани блоки аниматсия
+        input.style.display = "none";
+        audioAnim.style.display = "flex";
+        micBtn.classList.add("recording");
+        
+        // Ин ҷо коди MediaRecorder-ро барои сабт оғоз кунед
+    } else {
+        // Ба ҳолати пешина баргардонидан
+        input.style.display = "block";
+        audioAnim.style.display = "none";
+        micBtn.classList.remove("recording");
+    }
+});
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -284,6 +311,20 @@ button {
 input, textarea, button {
     -webkit-tap-highlight-color: transparent;
 }
+/* CSS барои аниматсияи оддии "садо" */
+.wave {
+    display: inline-block;
+    width: 3px;
+    height: 15px;
+    background: #075e54;
+    margin: 0 2px;
+    animation: wave-anim 1s infinite;
+}
+
+@keyframes wave-anim {
+    0%, 100% { height: 10px; }
+    50% { height: 25px; }
+}
     </style>
 </head>
 <body>
@@ -315,13 +356,16 @@ input, textarea, button {
     
   <div class="chat-box" id="chat-box"></div>
 
-<div class="input-panel">
+<div class="input-panel" id="input-panel">
     <textarea id="message-input" placeholder="Паём..."></textarea>
+    
+    <div id="audio-animation" style="display: none; flex: 1; align-items: center; justify-content: center; background: white; border-radius: 20px; border: 1px solid #ccc; height: 40px;">
+        <span style="color: #075e54;">Сабт шуда истодааст... 0:02</span>
+    </div>
     
     <button id="mic-btn" class="btn">
         <img src="https://cdn-icons-png.flaticon.com/128/3364/3364184.png" style="width: 20px; filter: brightness(0) invert(1);">
     </button>
-    
     <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
 </div>
 </body>
