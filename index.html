@@ -273,6 +273,17 @@ micBtn.addEventListener("click", () => {
     background-color: #ff4d4d !important; /* Ранги сурх */
     animation: pulse 1.5s infinite;      /* Аниматсия */
 }
+/* Нест кардани эффекти чоркунҷаи ҳангоми клик дар мобил */
+button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    outline: none;
+}
+
+/* Инчунин барои textarea ё дигар элементҳо, агар лозим шавад */
+input, textarea, button {
+    -webkit-tap-highlight-color: transparent;
+}
     </style>
 </head>
 <body>
