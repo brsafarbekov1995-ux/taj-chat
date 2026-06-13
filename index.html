@@ -26,14 +26,21 @@
 
         let selectedMessages = [];
         const menu = document.getElementById("custom-menu");
-        
+
         window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
         window.showDeleteModal = () => { document.getElementById("delete-modal").style.display = "flex"; menu.classList.remove('show'); };
         window.showClearModal = () => { document.getElementById("clear-modal").style.display = "flex"; menu.classList.remove('show'); };
+
         window.openEditModal = () => {
             if (selectedMessages.length > 0) {
-                document.getElementById("edit-input").value = document.getElementById(selectedMessages[0]).querySelector('.msg-text').innerText;
-                document.getElementById("edit-modal").style.display = "flex";
+                const msgEl = document.getElementById(selectedMessages[0]);
+                const senderId = msgEl.getAttribute("data-sender");
+                if(senderId !== myId) {
+                    alert("Шумо наметавонед паёми дигаронро таҳрир кунед!");
+                } else {
+                    document.getElementById("edit-input").value = msgEl.querySelector('.msg-text').innerText;
+                    document.getElementById("edit-modal").style.display = "flex";
+                }
             }
             menu.classList.remove('show');
         };
@@ -41,39 +48,17 @@
         const getHiddenMessages = () => JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
         const linkify = (text) => text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: blue;">$1</a>');
 
-        window.toggleSelect = (msgKey, element) => {
-            if (selectedMessages.includes(msgKey)) {
-                selectedMessages = selectedMessages.filter(id => id !== msgKey);
-                element.classList.remove('selected-message');
-            } else {
-                selectedMessages.push(msgKey);
-                element.classList.add('selected-message');
-            }
-        };
-
-        // ФУНКСИЯИ ИСЛОҲШУДА
-        window.openMenuAtTop = (e) => {
+        // Менюро дар назди паёми кликшуда мекушояд
+        window.openContextMenu = (e, msgKey, element) => {
             e.stopPropagation();
-            // Ҳамеша тафтиш мекунем, ки оё чизе интихоб шудааст ё не
-            if (selectedMessages.length === 0) {
-                // Агар интихоб нашуда бошад, пардаи огоҳиномаро мебарорем
-                const notify = document.getElementById("notify-box");
-                notify.classList.add("show");
-                setTimeout(() => notify.classList.remove("show"), 2000);
-                menu.classList.remove('show'); // Менюро ҳатман мепӯшем
-                return;
-            }
-            // Агар паём интихоб шуда бошад, менюро менамоем
-            menu.classList.toggle('show');
-        };
+            selectedMessages = [msgKey];
+            document.querySelectorAll('.selected-message').forEach(el => el.classList.remove('selected-message'));
+            element.classList.add('selected-message');
 
-        window.shareMessage = () => {
-            if (selectedMessages.length > 0) {
-                const text = document.getElementById(selectedMessages[0]).querySelector('.msg-text').innerText;
-                if (navigator.share) navigator.share({ text: text }).catch(console.error);
-                else alert("Мубодила дастрас нест.");
-            }
-            menu.classList.remove('show');
+            menu.style.position = "fixed";
+            menu.style.left = (e.clientX + 5) + "px";
+            menu.style.top = (e.clientY + 5) + "px";
+            menu.classList.add('show');
         };
 
         window.sendMessage = () => {
@@ -121,17 +106,14 @@
             const msg = data.val();
             const div = document.createElement("div");
             div.id = data.key;
+            div.setAttribute("data-sender", msg.senderId);
             div.className = msg.senderId === myId ? 'my-message' : 'received-message';
             div.innerHTML = `<div class="msg-text">${linkify(msg.text)}</div><div class="time-stamp">${msg.time}</div>`;
-            div.onclick = () => window.toggleSelect(data.key, div);
+            div.onclick = (e) => window.openContextMenu(e, data.key, div);
             document.getElementById("chat-box").appendChild(div);
         });
 
-        document.addEventListener("click", (e) => {
-            if (!e.target.closest('#custom-menu') && !e.target.closest('#menu-trigger')) {
-                menu.classList.remove('show');
-            }
-        });
+        document.addEventListener("click", () => menu.classList.remove('show'));
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -143,34 +125,8 @@
         .received-message { align-self: flex-start; background: #fff; border: 1px solid #ddd; }
         .selected-message { background-color: #add8e6 !important; border: 2px solid #007bff !important; }
         
-  /* Пардаи огоҳинома (Пурра дар паҳноии экран) */
-#notify-box {
-    position: fixed; 
-    top: -100px; 
-    left: 10px; 
-    right: 10px; 
-    background: #333; 
-    color: white; 
-    padding: 18px; 
-    border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
-    z-index: 5000;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    font-weight: bold; 
-    text-align: center;
-    font-size: 16px;
-}
-
-#notify-box.show { 
-    top: 20px; 
-}
-
-        #custom-menu { 
-            position: absolute; right: 20px; top: 70px; background: white; border-radius: 15px; 
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; width: 220px; padding: 8px 0;
-            opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.3s ease;
-        }
-        #custom-menu.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        #custom-menu { position: fixed; background: white; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; width: 200px; padding: 8px 0; opacity: 0; visibility: hidden; transition: 0.2s; }
+        #custom-menu.show { opacity: 1; visibility: visible; }
         #custom-menu button { display: block; width: 100%; padding: 12px 20px; border: none; background: none; text-align: left; cursor: pointer; }
         
         .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); justify-content: center; align-items: center; z-index: 3000; }
@@ -185,45 +141,24 @@
     </style>
 </head>
 <body>
-    <div id="notify-box">Паёмеро интихоб кунед! ⚠️</div>
-
     <div id="custom-menu">
         <button onclick="copyMessage()">📋 Нусха кардан</button>
-        <button onclick="shareMessage()">🔗 Мубодила кардан</button>
         <button onclick="openEditModal()">✏️ Таҳрир</button>
         <button onclick="showDeleteModal()" style="color: red;">🗑️ Нест кардан...</button>
         <button onclick="showClearModal()" style="color: orange;">🧹 Пок кардани чат...</button>
     </div>
 
     <div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
-        <div class="modal-content">
-            <h3>Нест кардан:</h3>
-            <button onclick="deleteSelected('me')" style="background: #f0f0f0;">👁️ Аз худам</button>
-            <button class="btn-danger" onclick="deleteSelected('everyone')">🗑️ Аз ҳама</button>
-            <button class="btn-default" onclick="closeModal('delete-modal')">Бекор</button>
-        </div>
+        <div class="modal-content"><h3>Нест кардан:</h3><button onclick="deleteSelected('me')" style="background: #f0f0f0;">👁️ Аз худам</button><button class="btn-danger" onclick="deleteSelected('everyone')">🗑️ Аз ҳама</button><button class="btn-default" onclick="closeModal('delete-modal')">Бекор</button></div>
     </div>
-
     <div id="clear-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('clear-modal')">
-        <div class="modal-content">
-            <h3>Пок кардани чат:</h3>
-            <button onclick="clearMyChat('me')" style="background: #f0f0f0;">👁️ Аз худам</button>
-            <button class="btn-danger" onclick="clearMyChat('everyone')">🗑️ Аз ҳама</button>
-            <button class="btn-default" onclick="closeModal('clear-modal')">Бекор</button>
-        </div>
+        <div class="modal-content"><h3>Пок кардани чат:</h3><button onclick="clearMyChat('me')" style="background: #f0f0f0;">👁️ Аз худам</button><button class="btn-danger" onclick="clearMyChat('everyone')">🗑️ Аз ҳама</button><button class="btn-default" onclick="closeModal('clear-modal')">Бекор</button></div>
     </div>
-
     <div id="edit-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('edit-modal')">
-        <div class="modal-content">
-            <textarea id="edit-input" style="width: 100%; height: 80px; padding: 10px; border-radius: 10px;"></textarea>
-            <button onclick="saveEdit()" style="background:#007bff; color:white;">Сабт кардан</button>
-            <button class="btn-default" onclick="closeModal('edit-modal')">Бекор</button>
-        </div>
+        <div class="modal-content"><textarea id="edit-input" style="width: 100%; height: 80px; padding: 10px; border-radius: 10px;"></textarea><button onclick="saveEdit()" style="background:#007bff; color:white;">Сабт кардан</button><button class="btn-default" onclick="closeModal('edit-modal')">Бекор</button></div>
     </div>
 
-    <div class="header">
-        <span></span> <div>TAJ CHAT</div> <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
-    </div>
+    <div class="header"><span></span> <div>TAJ CHAT</div> <span></span></div>
     <div class="chat-box" id="chat-box"></div>
     <div class="input-panel">
         <textarea id="message-input" placeholder="Паём..."></textarea>
