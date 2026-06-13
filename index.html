@@ -210,123 +210,6 @@ micBtn.addEventListener("click", () => {
         // Ин ҷо коди қатъ кардани сабтро илова кунед
     }
 });
-let mediaRecorder;
-let audioChunks = [];
-let timerInterval;
-let seconds = 0;
-
-// 1. Оғози сабт
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
-        
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            // Ин ҷо функсияи ирсолро даъват мекунем (дар Қадами 3)
-            sendAudioToFirebase(audioBlob);
-        };
-
-        mediaRecorder.start();
-
-        // Иваз кардани UI
-        document.getElementById('typing-view').style.display = 'none';
-        document.getElementById('recording-view').style.display = 'flex';
-
-        // Оғози таймер
-        seconds = 0;
-        timerInterval = setInterval(() => {
-            seconds++;
-            let mins = Math.floor(seconds / 60);
-            let secs = seconds % 60;
-            document.getElementById('timer-display').innerText = 
-                mins + ":" + (secs < 10 ? "0" : "") + secs;
-        }, 1000);
-
-    } catch (err) {
-        alert("Лутфан ба микрофон иҷозат диҳед!");
-        console.error(err);
-    }
-}
-
-// 2. Қатъ кардани сабт
-function stopRecording() {
-    // Қатъи сабт
-    mediaRecorder.stop();
-    mediaRecorder.stream.getTracks().forEach(track => track.stop());
-
-    // Бозгардонидани UI
-    document.getElementById('typing-view').style.display = 'flex';
-    document.getElementById('recording-view').style.display = 'none';
-    clearInterval(timerInterval);
-}
-// 3. Ирсол ба Firebase
-function sendAudioToFirebase(audioBlob) {
-    const reader = new FileReader();
-    
-    // Аудиоро ба Base64 табдил медиҳем
-    reader.readAsDataURL(audioBlob);
-    
-    reader.onloadend = () => {
-        const base64Audio = reader.result;
-        
-        // Фиристодани маълумот ба Firebase
-        push(messagesRef, {
-            type: 'audio', // Барои фарқ кардани аудио аз матн
-            audioData: base64Audio,
-            senderId: myId,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: new Date().toLocaleDateString()
-        });
-    };
-}
-onChildAdded(messagesRef, (data) => {
-    // Коди пешинаи пинҳонкунии паёмҳо
-    let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
-    if (hidden.includes(data.key)) return;
-    
-    const msg = data.val();
-    const currentDate = msg.date || "Имрӯз";
-    
-    // Санҷиши таърих (барои ҷудокунии паёмҳо)
-    if (currentDate !== lastDate) {
-        const dateDiv = document.createElement("div");
-        dateDiv.className = "date-divider";
-        dateDiv.innerText = currentDate;
-        document.getElementById("chat-box").appendChild(dateDiv);
-        lastDate = currentDate;
-    }
-
-    const div = document.createElement("div");
-    div.id = data.key;
-    div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
-
-    // ИН ҶО ТАҒЙИРОТ АСТ:
-    if (msg.type === 'audio') {
-        // Намоиши аудио паём
-        div.innerHTML = `
-            <div class="audio-msg-bubble">
-                <button class="play-btn" onclick="playAudio('${msg.audioData}')">▶</button>
-                <span style="font-size: 13px;">Аудио паём</span>
-            </div>
-            <div class="msg-time">${msg.time}</div>
-        `;
-    } else {
-        // Намоиши паёми матнӣ
-        div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
-    }
-
-    div.onclick = () => window.toggleSelect(data.key, div);
-    document.getElementById("chat-box").appendChild(div);
-    document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-});
-window.playAudio = (base64) => {
-    const audio = new Audio(base64);
-    audio.play();
-};
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -401,25 +284,6 @@ button {
 input, textarea, button {
     -webkit-tap-highlight-color: transparent;
 }
-.audio-msg-bubble {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #f0f0f0;
-    padding: 8px 12px;
-    border-radius: 15px;
-    margin-bottom: 5px;
-}
-.play-btn {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    border: none;
-    background: #075e54;
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-}
     </style>
 </head>
 <body>
@@ -452,22 +316,13 @@ input, textarea, button {
   <div class="chat-box" id="chat-box"></div>
 
 <div class="input-panel">
-    <div id="typing-view" style="display: flex; width: 100%; gap: 8px; align-items: center;">
-        <textarea id="message-input" placeholder="Паём..."></textarea>
-        
-        <button id="mic-btn" class="btn" onclick="startRecording()">
-            <img src="https://cdn-icons-png.flaticon.com/128/3364/3364184.png" style="width: 20px; filter: brightness(0) invert(1);">
-        </button>
-        
-        <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
-    </div>
-
-    <div id="recording-view" style="display: none; width: 100%; gap: 10px; align-items: center; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #ccc;">
-        <span style="color: red; font-size: 20px;">●</span>
-        <span id="timer-display" style="font-family: monospace;">0:00</span>
-        <span style="flex: 1; font-size: 14px; color: #555;">Сабт шуда истодааст...</span>
-        <button class="btn" onclick="stopRecording()" style="background: #ff4d4d; width: 40px; height: 40px;">❌</button>
-    </div>
+    <textarea id="message-input" placeholder="Паём..."></textarea>
+    
+    <button id="mic-btn" class="btn">
+        <img src="https://cdn-icons-png.flaticon.com/128/3364/3364184.png" style="width: 20px; filter: brightness(0) invert(1);">
+    </button>
+    
+    <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
 </div>
 </body>
 </html>
