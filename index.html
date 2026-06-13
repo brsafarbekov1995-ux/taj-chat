@@ -291,6 +291,56 @@ import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, o
     }, (error) => {
         console.error("ХАТОГИИ ПАЙВАСТШАВӢ:", error);
     });
+	// 1. Авто-навсозӣ ва захира кардани ҳолат
+// Firebase худаш маълумотро ҳангоми даромадан навсозӣ мекунад, 
+// аммо барои боварӣ ҳосил кардан метавонед инро истифода баред:
+window.addEventListener('load', () => {
+    // Ин ба таври худкор паёмҳои охиринро аз Firebase мегирад
+    console.log("Барнома бор шуд ва пайвастшавӣ оғоз гардид.");
+});
+
+// 2. Функсия барои назорати интернет
+function updateOnlineStatus() {
+    const indicator = document.getElementById("loading-indicator");
+    const body = document.body;
+    
+    if (!navigator.onLine) {
+        indicator.style.display = "block";
+        body.classList.add("offline-mode");
+    } else {
+        indicator.style.display = "none";
+        body.classList.remove("offline-mode");
+        // Агар интернет пайваст шуд, саҳифаро навсозӣ мекунем
+        location.reload(); 
+    }
+}
+
+// Функсия барои назорати ҳолати интернет
+function updateOnlineStatus() {
+    const indicator = document.getElementById("loading-indicator");
+    const body = document.body;
+    
+    if (!navigator.onLine) {
+        // Агар интернет қатъ шавад
+        indicator.style.display = "flex"; 
+        body.classList.add("offline-mode");
+        console.log("Интернет қатъ шуд.");
+    } else {
+        // Агар интернет пайваст шавад
+        indicator.style.display = "none";
+        body.classList.remove("offline-mode");
+        console.log("Интернет пайваст шуд, Firebase худкор навсозӣ мекунад.");
+        
+        // Дар ин ҷо reload лозим нест, Firebase худаш маълумоти навро мегирад!
+    }
+}
+
+// Гӯш кардани тағйироти интернет
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// Ҳангоми бор шудани саҳифа низ ҳолатро санҷед
+updateOnlineStatus();
     </script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -330,9 +380,52 @@ import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, o
         @keyframes blink { 50% { opacity: 0; } }
         #mic-btn img { filter: brightness(0) invert(1); pointer-events: none; }
         #stop-btn img { filter: brightness(0) invert(1); pointer-events: none; }
-		    </style>
+		/* Барои хира кардани экран */
+.offline-mode {
+    pointer-events: none;
+    opacity: 0.5;
+    filter: grayscale(1);
+}
+
+/* Элементи боргирӣ (Loading Spinner) - Ислоҳшуда */
+#loading-indicator {
+    display: none; /* Барои оғоз пинҳон мемонад */
+    position: fixed;
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%;
+    background: rgba(255, 255, 255, 0.7); /* Фон бо шаффофият */
+    backdrop-filter: blur(3px); /* Хира кардани замина */
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    pointer-events: all; /* Барои он ки корбар дигар чизеро пахш карда натавонад */
+}
+
+.spinner {
+    width: 50px; 
+    height: 50px; 
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #075e54; /* Ранги асосии чат */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
+ </style>
 </head>
 <body>
+<div id="loading-indicator">
+    <div class="spinner"></div>
+    <p>Интернет нест, интизор шавед...</p>
+</div>
     <div id="custom-menu">
         <button onclick="copyMessage()">📋 Нусха кардан</button>
         <button onclick="openEditModal()">✏️ Таҳрир</button>
