@@ -448,71 +448,66 @@ textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; 
 </head>
 <body>
     <div id="loading-indicator">
-        <div class="spinner"></div>
-        <p>Интернет нест, интизор шавед...</p>
-    </div>
-    
+    <div class="spinner"></div>
+    <p>Интернет нест, интизор шавед...</p>
+</div>
+
 <div id="custom-menu">
     <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
     <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
     <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
     <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
 </div>
-    
-    <div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
-        <div class="modal-content">
-            <h3>Нест кардан:</h3>
-            <button class="btn-action" onclick="deleteSelected('me')">👁️ Аз экрани ман</button>
-            <button class="btn-action" onclick="deleteSelected('everyone')">🗑️ Аз ҳама</button>
-        </div>
-    </div>
-    
-    <div id="edit-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('edit-modal')">
-        <div class="modal-content">
-            <textarea id="edit-input" style="width: 100%; height: 60px;"></textarea>
-            <button class="btn-action" onclick="saveEdit()">Сабт кардан</button>
-        </div>
-    </div>
-    
-    <div class="header">
-        <span></span> <div>TAJ CHAT</div> <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
-    </div>
-    
-    <div class="chat-box" id="chat-box"></div>
 
-
-    <div class="input-panel">
-<input type="file" id="file-input" multiple style="display:none;">
-
-<button id="file-btn" onclick="document.getElementById('file-input').click()">
-    <img src="https://cdn-icons-png.flaticon.com/512/14537/14537726.png" style="width: 25px;">
-</button>
-        <textarea id="message-input" placeholder="Паём..."></textarea>
-        
-       <div id="recording-ui">
-    <div class="wave"></div>
-    <div class="wave" style="animation-delay:0.2s"></div>
-    <div class="wave" style="animation-delay:0.4s"></div>
-    <span id="record-timer" class="recording-blink">0:00</span>
+<div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
+    <div class="modal-content">
+        <h3>Нест кардан:</h3>
+        <button class="btn-action" onclick="deleteSelected('me')">👁️ Аз экрани ман</button>
+        <button class="btn-action" onclick="deleteSelected('everyone')">🗑️ Аз ҳама</button>
+    </div>
 </div>
 
-<div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
-    
-    <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
-    
-    <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
-    
-    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
-    
-</div>
-        
-       <button id="mic-btn" class="btn">
-    <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Microphone" style="width: 24px; height: 24px;">
-</button>
-        <button id="stop-btn" class="btn" style="display:none; background:red;">
-            <img src="https://cdn-icons-png.flaticon.com/512/18401/18401499.png" alt="Stop" style="width: 24px; height: 24px;">
-        </button>
-        <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
+<div id="edit-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('edit-modal')">
+    <div class="modal-content">
+        <textarea id="edit-input" style="width: 100%; height: 60px;"></textarea>
+        <button class="btn-action" onclick="saveEdit()">Сабт кардан</button>
     </div>
+</div>
+
+<div class="header">
+    <span></span> <div>TAJ CHAT</div> <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
+</div>
+
+<div class="chat-box" id="chat-box"></div>
+
+<div class="input-panel">
+    <input type="file" id="file-input" multiple style="display:none;">
+    <button id="file-btn" onclick="document.getElementById('file-input').click()">
+        <img src="https://cdn-icons-png.flaticon.com/512/14537/14537726.png" style="width: 25px;">
+    </button>
+    
+    <textarea id="message-input" placeholder="Паём..."></textarea>
+    
+    <div id="recording-ui">
+        <div class="wave"></div>
+        <div class="wave" style="animation-delay:0.2s"></div>
+        <div class="wave" style="animation-delay:0.4s"></div>
+        <span id="record-timer" class="recording-blink">0:00</span>
+    </div>
+
+    <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
+        <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
+        <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
+        <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
+    </div>
+    
+    <button id="mic-btn" class="btn">
+        <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Microphone" style="width: 24px; height: 24px;">
+    </button>
+    <button id="stop-btn" class="btn" style="display:none; background:red;">
+        <img src="https://cdn-icons-png.flaticon.com/512/18401/18401499.png" alt="Stop" style="width: 24px; height: 24px;">
+    </button>
+    <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
+</div>
 </body>
 </html>
