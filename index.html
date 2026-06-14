@@ -388,6 +388,12 @@ window.openImageModal = (src) => {
     document.getElementById("full-img").src = src;
     modal.style.display = "flex";
 };
+// Ин қисматро дар охири скрипт илова кунед
+window.toggleFileMenu = function(e) {
+    e.stopPropagation();
+    const menu = document.getElementById("file-menu");
+    menu.classList.toggle('show');
+};
     </script>
 
     <style>
