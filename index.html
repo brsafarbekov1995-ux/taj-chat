@@ -352,27 +352,7 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus();
-		// Ҳангоми оғози сабт
-micBtn.onclick = async () => {
-    // ... коди мавҷудаи шумо ...
-    
-    // Илова кардани аниматсия
-    micBtn.classList.add("mic-pulsing");
-    
-    // ... давоми код ...
-};
-
-// Ҳангоми қатъи сабт
-stopBtn.onclick = () => {
-    mediaRecorder.stop();
-    clearInterval(timerInterval);
-    
-    // Нест кардани аниматсия
-    micBtn.classList.remove("mic-pulsing");
-    
-    stopBtn.style.display = "none";
-    sendBtn.style.display = "flex";
-};
+		
     </script>
 
     <style>
