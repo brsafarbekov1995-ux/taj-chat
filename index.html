@@ -379,7 +379,7 @@ onChildChanged(messagesRef, (data) => {
         
         const timeDiv = element.querySelector('.msg-time');
         if (timeDiv) {
-            timeDiv.innerHTML = `<span class="tick-wrapper ${colorClass}">${ticks}</span> ${msg.time}`;
+            timeDiv.innerHTML = `${msg.time} <span class="tick-wrapper ${colorClass}">${ticks}</span>`;
         }
     }
 });
