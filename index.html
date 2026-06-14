@@ -431,6 +431,21 @@ window.deleteSelected = (type) => {
     70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
     100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
 }
+#file-btn {
+    background: transparent !important;
+    border: none !important;
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+#file-btn:hover {
+    background: #f0f0f0 !important;
+    border-radius: 50%;
+}
     </style>
 </head>
 <body>
@@ -467,7 +482,11 @@ window.deleteSelected = (type) => {
     
     <div class="chat-box" id="chat-box"></div>
 
+
     <div class="input-panel">
+	<button id="file-btn" class="btn" style="background:none; color:#555; border:1px solid #ccc;">
+        📎
+    </button>
         <textarea id="message-input" placeholder="Паём..."></textarea>
         
        <div id="recording-ui">
