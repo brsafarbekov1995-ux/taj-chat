@@ -309,10 +309,49 @@ window.sendMessage = async () => {
     </script>
 
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .header { background: rgba(7, 94, 84, 0.85); backdrop-filter: blur(8px); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
-        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { 
+    font-family: sans-serif; 
+    background: #e5ddd5; 
+    height: 100dvh; 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden; 
+}
+
+.header {
+    background: rgba(7, 94, 84, 0.75); /* Ранги сабзи шаффоф */
+    backdrop-filter: blur(20px);        /* Эффекти хирашавӣ */
+    -webkit-backdrop-filter: blur(20px); 
+    
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    
+    padding: 15px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-box {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+    padding-top: 80px; /* ИНҶО: Фосила барои он ки паёми якум зери header намонад */
+    position: relative;
+}
+
+/* Илова кунед: Барои зебогии паёмҳо ҳангоми гузаштан */
+.chat-box::-webkit-scrollbar {
+    width: 0px; /* Скролл-барро дар мобилӣ пинҳон мекунад */
+}
         .date-divider { align-self: center; background: #e1f3fb; color: #555; padding: 4px 12px; border-radius: 8px; font-size: 11px; margin: 10px 0; }
         .msg-bubble { position: relative; padding: 8px 10px 22px 10px; border-radius: 15px; max-width: 80%; width: fit-content; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .my-msg { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 2px; }
