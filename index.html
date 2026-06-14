@@ -317,48 +317,35 @@ div.id = data.key;
 div.setAttribute("data-type", msg.type === 'audio' ? 'audio' : 'text'); 
 div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
             
-if(msg.type === 'audio') {
-    const audioObj = new Audio(msg.audio);
-    div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
-                        <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
-                        <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-                        <span>🎙️ ${msg.duration}</span>
-                    </div><div class="msg-time">${msg.time}</div>`;
-    
-    const playBtn = div.querySelector(`#play-${data.key}`);
-    const stopBtn = div.querySelector(`#stop-${data.key}`);
+            if(msg.type === 'audio') {
+                const audioObj = new Audio(msg.audio);
+                div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+                                    <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
+                                    <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
+                                    <span>🎙️ ${msg.duration}</span>
+                                </div><div class="msg-time">${msg.time}</div>`;
+                
+                const playBtn = div.querySelector(`#play-${data.key}`);
+                const stopBtn = div.querySelector(`#stop-${data.key}`);
+                playBtn.onclick = () => { audioObj.play(); playBtn.style.display = "none"; stopBtn.style.display = "block"; };
+                stopBtn.onclick = () => { audioObj.pause(); audioObj.currentTime = 0; stopBtn.style.display = "none"; playBtn.style.display = "block"; };
+                audioObj.onended = () => { stopBtn.style.display = "none"; playBtn.style.display = "block"; };
+            } else {
+                div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
+            }
+            
+            div.onclick = () => window.toggleSelect(data.key, div);
+            document.getElementById("chat-box").appendChild(div);
+            document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+        });
 
-    playBtn.onclick = () => {
-        // 1. Агар аудиои дигар боз бошад, онро қатъ мекунем
-        if (currentlyPlayingAudio && currentlyPlayingAudio !== audioObj) {
-            currentlyPlayingAudio.pause();
-            currentlyPlayingAudio.currentTime = 0;
-            // Тугмаҳои аудиои қаблиро барқарор мекунем (ин қисм каме душвортар аст)
-            document.querySelectorAll("button[id^='stop-']").forEach(b => b.style.display = "none");
-            document.querySelectorAll("button[id^='play-']").forEach(b => b.style.display = "block");
-        }
-
-        // 2. Аудиои ҷориро сабт ва навозиш мекунем
-        audioObj.play();
-        currentlyPlayingAudio = audioObj;
-        playBtn.style.display = "none";
-        stopBtn.style.display = "block";
-    };
-
-    stopBtn.onclick = () => {
-        audioObj.pause();
-        audioObj.currentTime = 0;
-        currentlyPlayingAudio = null; // Тоза кардани аудиои фаъол
-        stopBtn.style.display = "none";
-        playBtn.style.display = "block";
-    };
-
-    audioObj.onended = () => {
-        stopBtn.style.display = "none";
-        playBtn.style.display = "block";
-        currentlyPlayingAudio = null;
-    };
-}
+        onChildRemoved(messagesRef, (data) => { const element = document.getElementById(data.key); if (element) element.remove(); });
+        
+        onChildChanged(messagesRef, (data) => {
+            const msg = data.val();
+            const element = document.getElementById(data.key);
+            if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
+        });
 
         // --- Санҷиши Интернет ---
         function updateOnlineStatus() {
@@ -375,7 +362,7 @@ if(msg.type === 'audio') {
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus();
-		let currentlyPlayingAudio = null; // Барои нигоҳ доштани аудиои фаъол
+		
     </script>
 
     <style>
