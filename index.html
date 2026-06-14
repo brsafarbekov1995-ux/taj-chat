@@ -1,4 +1,4 @@
-r<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tg">
 <head>
     <meta charset="UTF-8">
@@ -7,7 +7,6 @@ r<!DOCTYPE html>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -18,7 +17,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const storage = getStorage(app); // Ин барои Storage лозим аст
 const messagesRef = ref(db, 'messages');
 
 // Идентификатори истифодабаранда
@@ -132,25 +130,26 @@ window.cancelAudio = () => {
     sendBtn.style.display = "none";
 };
 
+// --- Ирсоли Паём ---
 window.sendMessage = async () => {
-    // 1. Ирсоли Файлҳо (Тарзи нав ба Storage)
+    // 1. Ирсоли Файлҳо
     if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
-            const fileRef = storageRef(storage, 'uploads/' + Date.now() + "_" + file.name);
-            uploadBytes(fileRef, file).then((snapshot) => {
-                getDownloadURL(snapshot.ref).then((url) => {
-                    push(messagesRef, { 
-                        type: 'file',
-                        fileUrl: url,
-                        fileName: file.name,
-                        senderId: myId, 
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        date: new Date().toLocaleDateString()
-                    });
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                push(messagesRef, { 
+                    type: 'file',
+                    fileData: reader.result,
+                    fileName: file.name,
+                    senderId: myId, 
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    date: new Date().toLocaleDateString()
                 });
-            });
+            };
         }
         selectedFiles = [];
+        sendBtn.innerText = "➤";
         sendBtn.style.display = "none";
         micBtn.style.display = "flex";
         fileInput.value = "";
@@ -159,30 +158,32 @@ window.sendMessage = async () => {
 
     // 2. Ирсоли Аудио
     if (audioBlob) {
-        const audioRef = storageRef(storage, 'audio/' + Date.now() + ".ogg");
-        uploadBytes(audioRef, audioBlob).then((snapshot) => {
-            getDownloadURL(snapshot.ref).then((url) => {
-                push(messagesRef, { 
-                    type: 'audio',
-                    audioUrl: url,
-                    duration: recordTimer.innerText,
-                    senderId: myId, 
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    date: new Date().toLocaleDateString()
-                });
-                cancelAudio();
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+            push(messagesRef, { 
+                type: 'audio',
+                audio: reader.result,
+                duration: recordTimer.innerText,
+                senderId: myId, 
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toLocaleDateString()
             });
-        });
+            cancelAudio();
+        };
     } 
     // 3. Ирсоли Матн
     else if (inputArea.value.trim() !== "") {
+        const now = new Date();
         push(messagesRef, { 
             text: inputArea.value, 
             senderId: myId, 
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: new Date().toLocaleDateString()
+            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: now.toLocaleDateString()
         });
         inputArea.value = "";
+        sendBtn.style.display = "none";
+        micBtn.style.display = "flex";
     }
 };
 
@@ -313,50 +314,47 @@ onChildAdded(messagesRef, (data) => {
     
     // Рендери Файл
     if(msg.type === 'file') {
-        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileUrl}" target="_blank">${msg.fileName}</a></div><div class="msg-time">${msg.time}</div>`;
+        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${msg.time}</div>`;
     } 
-    // Рендери Аудио (Бо тугмаҳои Play ва Stop)
+    // Рендери Аудио
     else if(msg.type === 'audio') {
+        const audioObj = new Audio(msg.audio);
         div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
-            <button id="play-${data.key}" style="border:none; background:none; cursor:pointer;">▶</button>
-            <button id="stop-${data.key}" style="display:none; border:none; background:none; cursor:pointer;">■</button>
+            <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
+            <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
             <span>🎙️ ${msg.duration}</span>
         </div><div class="msg-time">${msg.time}</div>`;
         
-        // Эҷод кардани объект дар дохили scope-и ҳамин паём
-        const audioObj = new Audio(msg.audioUrl);
-        
-        setTimeout(() => {
-            const playBtn = div.querySelector(`#play-${data.key}`);
-            const stopBtn = div.querySelector(`#stop-${data.key}`);
-            
-            playBtn.onclick = () => {
-                if (currentPlayingAudio) {
-                    currentPlayingAudio.pause();
-                    currentPlayingAudio.currentTime = 0;
-                }
-                audioObj.play();
-                currentPlayingAudio = audioObj;
-                playBtn.style.display = "none";
-                stopBtn.style.display = "block";
-            };
-            stopBtn.onclick = () => {
-                audioObj.pause();
-                audioObj.currentTime = 0;
-                currentPlayingAudio = null;
-                stopBtn.style.display = "none";
-                playBtn.style.display = "block";
-            };
-            audioObj.onended = () => {
-                currentPlayingAudio = null;
-                stopBtn.style.display = "none";
-                playBtn.style.display = "block";
-            };
-        }, 100);
+        const playBtn = div.querySelector(`#play-${data.key}`);
+        const stopBtn = div.querySelector(`#stop-${data.key}`);
+        playBtn.onclick = () => {
+            if (currentPlayingAudio) {
+                currentPlayingAudio.pause();
+                currentPlayingAudio.currentTime = 0;
+                document.querySelectorAll('button[id^="stop-"]').forEach(btn => btn.style.display = 'none');
+                document.querySelectorAll('button[id^="play-"]').forEach(btn => btn.style.display = 'block');
+            }
+            audioObj.play();
+            currentPlayingAudio = audioObj; 
+            playBtn.style.display = "none";
+            stopBtn.style.display = "block";
+        };
+        stopBtn.onclick = () => {
+            audioObj.pause();
+            audioObj.currentTime = 0;
+            currentPlayingAudio = null;
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+        };
+        audioObj.onended = () => {
+            currentPlayingAudio = null;
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+        };
     } 
     // Рендери Матн
     else {
-        div.innerHTML = `<div class="msg-text">${(msg.text || "").replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
+        div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
     }
     
     div.onclick = () => window.toggleSelect(data.key, div);
