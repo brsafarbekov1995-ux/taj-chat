@@ -173,17 +173,20 @@ window.sendMessage = async () => {
         };
     } 
     // 3. Ирсоли Матн
-    else if (inputArea.value.trim() !== "") {
-        const now = new Date();
-        push(messagesRef, { 
-            text: inputArea.value, 
-            senderId: myId, 
-            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: now.toLocaleDateString()
-        });
-        inputArea.value = "";
-        sendBtn.style.display = "none";
-        micBtn.style.display = "flex";
+  // 3. Ирсоли Матн
+else if (inputArea.value.trim() !== "") {
+    const now = new Date();
+    push(messagesRef, { 
+        text: inputArea.value, 
+        senderId: myId, 
+        status: 'sent', // МУҲИМ
+        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: now.toLocaleDateString()
+    });
+    inputArea.value = "";
+    sendBtn.style.display = "none";
+    micBtn.style.display = "flex";
+}
     }
 };
 
@@ -293,29 +296,13 @@ window.deleteSelected = (type) => {
 
 // --- Рендери Паёмҳо ---
 onChildAdded(messagesRef, (data) => {
-    let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
-    if (hidden.includes(data.key)) return;
-    
-    const msg = data.val();
-    const currentDate = msg.date || "Имрӯз";
-    
-    if (currentDate !== lastDate) {
-        const dateDiv = document.createElement("div");
-        dateDiv.className = "date-divider";
-        dateDiv.innerText = currentDate;
-        document.getElementById("chat-box").appendChild(dateDiv);
-        lastDate = currentDate;
-    }
-
-    const div = document.createElement("div");
-    div.id = data.key;
-    div.setAttribute("data-type", msg.type || 'text'); 
-    div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
     
     // Рендери Файл
-    if(msg.type === 'file') {
-        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${msg.time}</div>`;
-    } 
+   if(msg.type === 'file') {
+    const ticksHtml = msg.senderId === myId ? `<span class="tick-wrapper">${getTicks(msg.status || 'sent')}</span>` : '';
+    div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div>
+                     <div class="msg-time">${ticksHtml} ${msg.time}</div>`;
+}
     // Рендери Аудио
     else if(msg.type === 'audio') {
         const audioObj = new Audio(msg.audio);
@@ -385,6 +372,48 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
+// Функция барои сохтани HTML-и галочкаҳо
+const getTicks = (status) => {
+    if (status === 'sent') return '<span class="tick-gray">✓</span>';
+    if (status === 'delivered') return '<span class="tick-gray">✓✓</span>';
+    if (status === 'read') return '<span class="tick-green">✓✓</span>';
+    return '';
+};
+// Мисол барои матн:
+push(messagesRef, { 
+    text: inputArea.value, 
+    senderId: myId, 
+    status: 'sent', // ИНРО ИЛОВА КУНЕД
+    time: now.toLocaleTimeString(...),
+    date: now.toLocaleDateString()
+});
+
+// Ҳамин тавр status: 'sent'-ро дар қисми файлҳо ва аудиоҳо низ илова кунед.
+else {
+    // Галочкаҳоро барои паёмҳои шахсии худ нишон медиҳем
+    const ticksHtml = msg.senderId === myId ? `<span class="tick-wrapper">${getTicks(msg.status || 'sent')}</span>` : '';
+    
+    div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div>
+                     <div class="msg-time">${ticksHtml} ${msg.time}</div>`;
+}
+// Инро дар охири функцияи onChildAdded илова кунед:
+if (msg.senderId !== myId && msg.status !== 'read') {
+    update(ref(db, 'messages/' + data.key), { status: 'read' });
+}
+onChildChanged(messagesRef, (data) => {
+    const msg = data.val();
+    const element = document.getElementById(data.key);
+    if (element) {
+        const timeDiv = element.querySelector('.msg-time');
+        if (timeDiv) {
+            // Агар паём аз они мо бошад, статусро нав мекунем
+            if (msg.senderId === myId) {
+                const ticksHtml = `<span class="tick-wrapper">${getTicks(msg.status)}</span>`;
+                timeDiv.innerHTML = `${ticksHtml} ${msg.time}`;
+            }
+        }
+    }
+});
 </script>
 
     <style>
@@ -462,6 +491,13 @@ updateOnlineStatus();
     transform: scale(0.9);
     background-color: #ffffff !important; /* Ранги сафедро нигоҳ медорад */
 }
+.tick-wrapper {
+    display: inline-block;
+    margin-right: 4px;
+    font-size: 12px;
+}
+.tick-gray { color: #999; }
+.tick-green { color: #4fc3f7; } /* Ранги сабз/кабуд барои хонда шуд */
     </style>
 </head>
 <body>
