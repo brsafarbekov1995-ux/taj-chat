@@ -316,6 +316,7 @@ div.id = data.key;
 // ИНҶО: Намудро сабт мекунем
 div.setAttribute("data-type", msg.type === 'audio' ? 'audio' : 'text'); 
 div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
+            
 if(msg.type === 'audio') {
     const audioObj = new Audio(msg.audio);
     div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
@@ -328,43 +329,34 @@ if(msg.type === 'audio') {
     const stopBtn = div.querySelector(`#stop-${data.key}`);
 
     playBtn.onclick = () => {
-        // Агар ягон аудиои дигар кор карда истода бошад, онро қатъ мекунем
-        if (activeAudio && activeAudio !== audioObj) {
-            activeAudio.pause();
-            activeAudio.currentTime = 0;
-            activeStopBtn.style.display = "none";
-            activePlayBtn.style.display = "block";
+        // 1. Агар аудиои дигар боз бошад, онро қатъ мекунем
+        if (currentlyPlayingAudio && currentlyPlayingAudio !== audioObj) {
+            currentlyPlayingAudio.pause();
+            currentlyPlayingAudio.currentTime = 0;
+            // Тугмаҳои аудиои қаблиро барқарор мекунем (ин қисм каме душвортар аст)
+            document.querySelectorAll("button[id^='stop-']").forEach(b => b.style.display = "none");
+            document.querySelectorAll("button[id^='play-']").forEach(b => b.style.display = "block");
         }
 
-        // Аудиои ҳозираи моро оғоз мекунем
+        // 2. Аудиои ҷориро сабт ва навозиш мекунем
         audioObj.play();
+        currentlyPlayingAudio = audioObj;
         playBtn.style.display = "none";
         stopBtn.style.display = "block";
-
-        // Ҳолати навро сабт мекунем
-        activeAudio = audioObj;
-        activePlayBtn = playBtn;
-        activeStopBtn = stopBtn;
     };
 
     stopBtn.onclick = () => {
         audioObj.pause();
         audioObj.currentTime = 0;
+        currentlyPlayingAudio = null; // Тоза кардани аудиои фаъол
         stopBtn.style.display = "none";
         playBtn.style.display = "block";
-        
-        // Агар аудиои ҳозира қатъ шавад, назоратчиро тоза мекунем
-        if (activeAudio === audioObj) {
-            activeAudio = null;
-        }
     };
 
     audioObj.onended = () => {
         stopBtn.style.display = "none";
         playBtn.style.display = "block";
-        if (activeAudio === audioObj) {
-            activeAudio = null;
-        }
+        currentlyPlayingAudio = null;
     };
 }
 
@@ -383,10 +375,7 @@ if(msg.type === 'audio') {
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus();
-		// Ин тағйирёбандаҳоро дар болои скрипт илова кунед
-let activeAudio = null;
-let activePlayBtn = null;
-let activeStopBtn = null;
+		let currentlyPlayingAudio = null; // Барои нигоҳ доштани аудиои фаъол
     </script>
 
     <style>
