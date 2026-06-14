@@ -192,25 +192,31 @@ window.openMenuAtTop = (e) => {
         
         if (msgElement) {
             const type = msgElement.getAttribute("data-type"); // 'audio' ё 'text'
+            
+            // Санҷиш: Оё ин паём аз они ман аст?
+            const isMyMessage = msgElement.classList.contains('my-msg');
 
-            // ID-ҳои дуруст мувофиқи HTML-и шумо:
             const copyBtn = document.getElementById("btn-copy");
             const editBtn = document.getElementById("btn-edit");
 
             if (copyBtn && editBtn) {
-                if (type === 'audio') {
-                    // Агар аудио бошад, тугмаҳоро пинҳон мекунем
-                    copyBtn.style.display = "none";
+                // 1. Нусхабардорӣ (Copy): Танҳо барои матн
+                copyBtn.style.display = (type === 'audio') ? "none" : "block";
+
+                // 2. Таҳрир (Edit): Танҳо барои матни худи ман
+                // Агар аудио бошад Ё паём аз они дигарон бошад (!isMyMessage) -> пинҳон
+                if (type === 'audio' || !isMyMessage) {
                     editBtn.style.display = "none";
                 } else {
-                    // Агар матн бошад, тугмаҳоро бармегардонем
-                    copyBtn.style.display = "block";
                     editBtn.style.display = "block";
                 }
             }
         }
     }
     
+    // Кушодани меню
+    menu.classList.toggle('show'); 
+};
     // Кушодани меню
     menu.classList.toggle('show'); 
 };
