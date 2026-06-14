@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT - Пурра</title>
-	<script type="module">
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -27,13 +27,13 @@ localStorage.setItem("chat_user_id", myId);
 let lastDate = "";
 let selectedMessages = [];
 let selectedFiles = []; 
-let replyData = null; 
+let replyData = null; // ФУНКСИЯИ НАВ: барои Reply
 let mediaRecorder;
 let audioChunks = [];
 let audioBlob = null;
 let timerInterval;
 let currentAudio = null; 
-window.currentPlayingAudio = null;
+window.currentPlayingAudio = null; // Глобалӣ барои назорати садо
 
 // Элементҳои UI
 const inputArea = document.getElementById("message-input");
@@ -147,7 +147,7 @@ window.cancelAudio = () => {
     audioBlob = null;
     previewUi.style.display = "none";
     inputArea.style.display = "block"; 
-    micBtn.style.display = "flex";        
+    micBtn.style.display = "flex";       
     sendBtn.style.display = "none";
 };
 
@@ -292,6 +292,7 @@ onChildAdded(messagesRef, (data) => {
     div.setAttribute("data-type", msg.type || 'text'); 
     div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
     
+    // Намоиши Reply дар чат
     let replyHtml = msg.replyTo ? `<div class="quoted-msg" onclick="document.getElementById('${msg.replyTo.id}').scrollIntoView()">Ҷавоб ба: ${msg.replyTo.text}</div>` : "";
     
     let tickHtml = "";
@@ -420,16 +421,16 @@ body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: fl
 .rec-msg { align-self: flex-start; background: white; border-bottom-left-radius: 2px; }
 .selected-message { background-color: #95c7f0 !important; }
 .msg-text { font-size: 15px; word-wrap: break-word; }
-.msg-time { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: #777; display: flex; align-items: center; gap: 4px; }
+.msg-time { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: #777; }
 
 /* ==================================================
    4. Функсияи Ҷавоб додан (Reply UI Styles)
    ================================================== */
 .quoted-msg { 
-    background: #fff3cd; 
-    color: #000000; 
-    font-weight: bold; 
-    border-left: 3px solid #ffc107; 
+    background: #fff3cd;      /* Ин ранги зарди сабук аст */
+    color: #000000;           /* Матн сиёҳ */
+    font-weight: bold;        /* Матн ғафс */
+    border-left: 3px solid #ffc107; /* Хати канори зард */
     padding: 6px; 
     margin-bottom: 6px; 
     font-size: 12px; 
@@ -437,9 +438,17 @@ body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: fl
     cursor: pointer; 
 }
 #reply-preview-container { 
-    position: sticky; bottom: 60px; z-index: 1000; width: 100%; background: #ffffff;
-    border-top: 1px solid #ddd; box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-    padding: 10px; border-left: 4px solid #075e54; font-size: 13px; display: none; 
+    position: sticky;
+    bottom: 60px;
+    z-index: 1000;
+    width: 100%;
+    background: #ffffff;
+    border-top: 1px solid #ddd;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    padding: 10px; 
+    border-left: 4px solid #075e54; 
+    font-size: 13px; 
+    display: none; 
 }
 
 /* ==================================================
@@ -456,19 +465,28 @@ body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: fl
 /* ==================================================
    6. Панели воридкунии матн (Input Panel)
    ================================================== */
-.input-panel { padding: 10px; background: #f0f0f0; display: flex; flex-direction: column; gap: 8px; }
+.input-panel { padding: 10px; background: transparent; display: flex; flex-direction: column; gap: 8px; }
 .input-row { display: flex; gap: 8px; align-items: center; }
-textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; height: 42px; outline: none; resize: none; }
-.btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #075e54; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-#file-btn { background-color: #ffffff !important; border: 2px solid #000000 !important; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 8px; flex-shrink: 0; }
+textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; height: 40px; resize: none; }
+.btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #075e54; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#file-btn { background-color: #ffffff !important; border: 2px solid #000000 !important; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 8px; flex-shrink: 0; padding: 0; }
 
 /* ==================================================
    7. Аниматсияҳо ва Индикаторҳо (Animations & Status)
    ================================================== */
 .wave { width: 3px; height: 15px; background: #075e54; animation: wave-anim 1s infinite; }
 @keyframes wave-anim { 0%, 100% { height: 10px; } 50% { height: 25px; } }
-.recording-blink { animation: blink 1s infinite; color: red
- </style>
+.recording-blink { animation: blink 1s infinite; color: red; }
+@keyframes blink { 50% { opacity: 0; } }
+.stop-pulsing { animation: pulse-red 1s infinite; }
+@keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+#loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+.spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.tick-wrapper { display: inline-block; margin-right: 4px; font-size: 12px; }
+.tick-gray { color: #999; }
+.tick-green { color: #25d366; }
+   </style>
 </head>
 <body>
     <div id="loading-indicator">
