@@ -444,7 +444,21 @@ window.openImageModal = (src) => {
 
 /* Равзанаи калони расм (Modal) */
 .img-viewer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index: 5000; justify-content: center; align-items: center; }
-    </style>
+   /* Боварӣ ҳосил кунед, ки ин ду қоида дар CSS ҳаст */
+#file-menu { 
+    position: absolute; 
+    bottom: 70px; /* Ин ҷояшро метавонед тағйир диҳед */
+    left: 10px; 
+    background: white; 
+    padding: 10px; 
+    border-radius: 10px; 
+    display: none; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    z-index: 9999; /* Z-index-ро баланд кунед */
+}
+
+#file-menu.show { display: block; }
+   </style>
 </head>
 <body>
     <div id="loading-indicator">
