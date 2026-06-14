@@ -7,7 +7,6 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -18,7 +17,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const storage = getStorage(app); // Storage илова шуд
 const messagesRef = ref(db, 'messages');
 
 // Идентификатори истифодабаранда
@@ -28,7 +26,7 @@ localStorage.setItem("chat_user_id", myId);
 // Тағйирёбандаҳои ҷаҳонӣ
 let lastDate = "";
 let selectedMessages = [];
-let selectedFiles = []; 
+let selectedFiles = []; // Нав барои файлҳо
 let mediaRecorder;
 let audioChunks = [];
 let audioBlob = null;
@@ -38,7 +36,7 @@ let currentPlayingAudio = null;
 
 // Элементҳои UI
 const inputArea = document.getElementById("message-input");
-const fileInput = document.getElementById("file-input");
+const fileInput = document.getElementById("file-input"); // Нав
 const recordingUi = document.getElementById("recording-ui");
 const previewUi = document.getElementById("preview-ui");
 const micBtn = document.getElementById("mic-btn");
@@ -54,10 +52,11 @@ fileInput.addEventListener('change', (e) => {
     if (selectedFiles.length > 0) {
         micBtn.style.display = "none";
         sendBtn.style.display = "flex";
-        sendBtn.innerText = `📎 ${selectedFiles.length}`;
+        sendBtn.innerText = `📎 ${selectedFiles.length}`; // Нишон додани миқдор
     }
 });
 
+// --- Логикаи воридкунии матн ---
 inputArea.addEventListener("input", () => {
     if (inputArea.value.trim() !== "") {
         micBtn.style.display = "none";
@@ -68,10 +67,12 @@ inputArea.addEventListener("input", () => {
     }
 });
 
+// --- Идоракунии Модалҳо ---
 window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
 
 // --- Логикаи Аудио ---
 let isPlaying = false; 
+
 micBtn.onclick = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -125,31 +126,27 @@ window.cancelAudio = () => {
     audioBlob = null;
     previewUi.style.display = "none";
     inputArea.style.display = "block"; 
-    micBtn.style.display = "flex";       
+    micBtn.style.display = "flex";      
     sendBtn.style.display = "none";
 };
 
-// --- Ирсоли Паём (Бо дастгирии Storage) ---
+// --- Ирсоли Паём ---
 window.sendMessage = async () => {
-    // 1. Ирсоли Файлҳо бо Storage
+    // 1. Ирсоли Файлҳо
     if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
-            const fileRef = storageRef(storage, 'files/' + Date.now() + '_' + file.name);
-            await uploadBytes(fileRef, file);
-            const url = await getDownloadURL(fileRef);
-            
-            let type = 'file';
-            if (file.type.startsWith('image/')) type = 'image';
-            else if (file.type.startsWith('video/')) type = 'video';
-
-            push(messagesRef, { 
-                type: type,
-                url: url,
-                fileName: file.name,
-                senderId: myId, 
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                date: new Date().toLocaleDateString()
-            });
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                push(messagesRef, { 
+                    type: 'file',
+                    fileData: reader.result,
+                    fileName: file.name,
+                    senderId: myId, 
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    date: new Date().toLocaleDateString()
+                });
+            };
         }
         selectedFiles = [];
         sendBtn.innerText = "➤";
@@ -159,21 +156,21 @@ window.sendMessage = async () => {
         return;
     }
 
-    // 2. Ирсоли Аудио бо Storage
+    // 2. Ирсоли Аудио
     if (audioBlob) {
-        const audioRef = storageRef(storage, 'audio/' + Date.now() + '.ogg');
-        await uploadBytes(audioRef, audioBlob);
-        const url = await getDownloadURL(audioRef);
-        
-        push(messagesRef, { 
-            type: 'audio',
-            url: url,
-            duration: recordTimer.innerText,
-            senderId: myId, 
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: new Date().toLocaleDateString()
-        });
-        cancelAudio();
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+            push(messagesRef, { 
+                type: 'audio',
+                audio: reader.result,
+                duration: recordTimer.innerText,
+                senderId: myId, 
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toLocaleDateString()
+            });
+            cancelAudio();
+        };
     } 
     // 3. Ирсоли Матн
     else if (inputArea.value.trim() !== "") {
@@ -190,7 +187,7 @@ window.sendMessage = async () => {
     }
 };
 
-// --- Функсияҳои Меню (Ҳамааш дар ҷояш) ---
+// --- Функсияҳои Меню (ҳамааш дар ҷояш) ---
 window.toggleSelect = (msgKey, element) => {
     if (selectedMessages.includes(msgKey)) {
         selectedMessages = selectedMessages.filter(id => id !== msgKey);
@@ -212,7 +209,7 @@ window.openMenuAtTop = (e) => {
             const copyBtn = document.getElementById("btn-copy");
             const editBtn = document.getElementById("btn-edit");
             if (copyBtn && editBtn) {
-                if (type === 'audio' || type === 'file' || type === 'image' || type === 'video') {
+                if (type === 'audio' || type === 'file') { // Файлро ҳам овезон кардем
                     copyBtn.style.display = "none";
                     editBtn.style.display = "none";
                 } else {
@@ -294,7 +291,7 @@ window.deleteSelected = (type) => {
     finishSelection(); 
 };
 
-// --- РЕНДЕР (Бо дастгирии расму видео) ---
+// --- Рендери Паёмҳо ---
 onChildAdded(messagesRef, (data) => {
     let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
     if (hidden.includes(data.key)) return;
@@ -315,43 +312,49 @@ onChildAdded(messagesRef, (data) => {
     div.setAttribute("data-type", msg.type || 'text'); 
     div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
     
-    // Рендер кардани намудҳо
+    // Рендери Файл
     if(msg.type === 'file') {
-        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.url}" target="_blank">${msg.fileName}</a></div><div class="msg-time">${msg.time}</div>`;
+        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${msg.time}</div>`;
     } 
-    else if(msg.type === 'image') {
-        div.innerHTML = `<img src="${msg.url}" style="max-width:200px; border-radius:10px;"><div class="msg-time">${msg.time}</div>`;
-    }
-    else if(msg.type === 'video') {
-        div.innerHTML = `<video src="${msg.url}" controls style="max-width:200px; border-radius:10px;"></video><div class="msg-time">${msg.time}</div>`;
-    }
+    // Рендери Аудио
     else if(msg.type === 'audio') {
+        const audioObj = new Audio(msg.audio);
         div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
             <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
             <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-            <span>🎙️</span>
+            <span>🎙️ ${msg.duration}</span>
         </div><div class="msg-time">${msg.time}</div>`;
         
-        const audioObj = new Audio(msg.url);
         const playBtn = div.querySelector(`#play-${data.key}`);
         const stopBtn = div.querySelector(`#stop-${data.key}`);
-        
         playBtn.onclick = () => {
             if (currentPlayingAudio) {
                 currentPlayingAudio.pause();
-                document.querySelectorAll('button[id^="stop-"]').forEach(b => b.style.display = 'none');
-                document.querySelectorAll('button[id^="play-"]').forEach(b => b.style.display = 'block');
+                currentPlayingAudio.currentTime = 0;
+                document.querySelectorAll('button[id^="stop-"]').forEach(btn => btn.style.display = 'none');
+                document.querySelectorAll('button[id^="play-"]').forEach(btn => btn.style.display = 'block');
             }
             audioObj.play();
-            currentPlayingAudio = audioObj;
+            currentPlayingAudio = audioObj; 
             playBtn.style.display = "none";
             stopBtn.style.display = "block";
         };
-        stopBtn.onclick = () => { audioObj.pause(); audioObj.currentTime = 0; stopBtn.style.display = "none"; playBtn.style.display = "block"; };
-        audioObj.onended = () => { stopBtn.style.display = "none"; playBtn.style.display = "block"; };
+        stopBtn.onclick = () => {
+            audioObj.pause();
+            audioObj.currentTime = 0;
+            currentPlayingAudio = null;
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+        };
+        audioObj.onended = () => {
+            currentPlayingAudio = null;
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+        };
     } 
+    // Рендери Матн
     else {
-        div.innerHTML = `<div class="msg-text">${msg.text ? msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>') : ""}</div><div class="msg-time">${msg.time}</div>`;
+        div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
     }
     
     div.onclick = () => window.toggleSelect(data.key, div);
@@ -367,6 +370,7 @@ onChildChanged(messagesRef, (data) => {
     if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
 });
 
+// --- Санҷиши Интернет ---
 function updateOnlineStatus() {
     const indicator = document.getElementById("loading-indicator");
     const body = document.body;
