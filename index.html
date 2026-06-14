@@ -432,8 +432,8 @@ window.deleteSelected = (type) => {
     100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
 }
 #file-btn {
-    background: #ffffff;
-    border: 2px solid #000000;
+    background: #ffffff; /* Фони сафед */
+    border: 2px solid #000000; /* Рамкаи сиёҳ */
     width: 45px;
     height: 45px;
     border-radius: 50%;
@@ -441,8 +441,9 @@ window.deleteSelected = (type) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 8px; /* Масофа то textarea */
+    margin-right: 8px; /* Масофа аз textarea */
     transition: transform 0.2s;
+    flex-shrink: 0; /* Барои он ки тугма хурд нашавад */
 }
 #file-btn:active {
     transform: scale(0.9);
@@ -484,11 +485,17 @@ window.deleteSelected = (type) => {
     <div class="chat-box" id="chat-box"></div>
 
 
-    <div class="input-panel">
-	<button id="file-btn" class="btn" style="background:none; color:#555; border:1px solid #ccc;">
-        📎
+<div class="input-panel">
+    <input type="file" id="file-input" style="display:none;">
+
+    <button id="file-btn" onclick="document.getElementById('file-input').click()">
+        <img src="https://cdn-icons-png.flaticon.com/512/2958/2958783.png" alt="File" style="width: 24px; height: 24px;">
     </button>
-        <textarea id="message-input" placeholder="Паём..."></textarea>
+    
+    <textarea id="message-input" placeholder="Паём..."></textarea>
+    
+    ...
+</div>
         
        <div id="recording-ui">
     <div class="wave"></div>
