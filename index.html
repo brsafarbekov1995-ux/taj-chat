@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT - Пурра</title>
-    <script type="module">
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -31,6 +31,7 @@ import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, o
         let audioBlob = null;
         let timerInterval;
         let currentAudio = null; 
+        let currentPlayingAudio = null; // Ин барои қатъ кардани аудиоҳои чат истифода мешавад
 
         // Элементҳои UI
         const inputArea = document.getElementById("message-input");
@@ -98,19 +99,17 @@ micBtn.onclick = async () => {
     } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
 };
 
-// 2. Қатъи сабт (барои эҳтиёт, инҷо ҳам илова кунед)
+// 2. Қатъи сабт
 stopBtn.onclick = () => {
     mediaRecorder.stop();
     clearInterval(timerInterval);
     
-    // Аниматсияро аз инҷо ҳам қатъ мекунем
     stopBtn.classList.remove("stop-pulsing");
-    
     stopBtn.style.display = "none";
     sendBtn.style.display = "flex";
 };
 
-// 3. Плеери муттаҳидшуда (Play/Pause бо як тугма)
+// 3. Плеери муттаҳидшуда (барои пешнамоиш)
 window.toggleAudioPreview = () => {
     const btn = document.getElementById("toggle-play-btn");
     
@@ -133,7 +132,7 @@ window.toggleAudioPreview = () => {
     isPlaying = !isPlaying;
 };
 
-// 4. Бекор кардани аудио (бо иконаи сатил)
+// 4. Бекор кардани аудио
 window.cancelAudio = () => {
     if (currentAudio) {
         currentAudio.pause();
@@ -144,8 +143,8 @@ window.cancelAudio = () => {
     
     audioBlob = null;
     previewUi.style.display = "none";
-    inputArea.style.display = "block"; // Майдони матнро бармегардонем
-    micBtn.style.display = "flex";      // Микрофонро бармегардонем
+    inputArea.style.display = "block"; 
+    micBtn.style.display = "flex";     
     sendBtn.style.display = "none";
 };
 
@@ -180,7 +179,6 @@ window.sendMessage = async () => {
 };
 
 // --- Функсияҳои Меню ва Идоракунӣ ---
-
 window.toggleSelect = (msgKey, element) => {
     if (selectedMessages.includes(msgKey)) {
         selectedMessages = selectedMessages.filter(id => id !== msgKey);
@@ -194,34 +192,24 @@ window.toggleSelect = (msgKey, element) => {
 
 window.openMenuAtTop = (e) => { 
     e.stopPropagation(); 
-    
-    // Агар паём интихоб шуда бошад
     if (selectedMessages.length > 0) {
         const msgKey = selectedMessages[0];
         const msgElement = document.getElementById(msgKey);
-        
         if (msgElement) {
-            const type = msgElement.getAttribute("data-type"); // 'audio' ё 'text'
-
-            // ID-ҳои дуруст мувофиқи HTML-и шумо:
+            const type = msgElement.getAttribute("data-type");
             const copyBtn = document.getElementById("btn-copy");
             const editBtn = document.getElementById("btn-edit");
-
             if (copyBtn && editBtn) {
                 if (type === 'audio') {
-                    // Агар аудио бошад, тугмаҳоро пинҳон мекунем
                     copyBtn.style.display = "none";
                     editBtn.style.display = "none";
                 } else {
-                    // Агар матн бошад, тугмаҳоро бармегардонем
                     copyBtn.style.display = "block";
                     editBtn.style.display = "block";
                 }
             }
         }
     }
-    
-    // Кушодани меню
     menu.classList.toggle('show'); 
 };
 
@@ -230,7 +218,7 @@ document.addEventListener("click", (e) => {
         menu.classList.remove('show'); 
     }
 });
-// Ёрирасон барои тоза кардани интихоб ва пӯшидани меню
+
 const finishSelection = () => {
     selectedMessages.forEach(id => document.getElementById(id)?.classList.remove('selected-message'));
     selectedMessages = [];
@@ -266,7 +254,7 @@ window.saveEdit = () => {
     const msgKey = selectedMessages[0];
     if (newText && msgKey) { update(ref(db, 'messages/' + msgKey), { text: newText }); }
     closeModal('edit-modal');
-    finishSelection(); // Тоза кардани интихоб
+    finishSelection(); 
 };
 
 window.showDeleteModal = () => { 
@@ -291,7 +279,7 @@ window.deleteSelected = (type) => {
         } else remove(ref(db, 'messages/' + msgKey));
     });
     closeModal('delete-modal');
-    finishSelection(); // Тоза кардани интихоб
+    finishSelection(); 
 };
 
         // --- Рендери Паёмҳо ---
@@ -310,12 +298,10 @@ window.deleteSelected = (type) => {
                 lastDate = currentDate;
             }
 
-         // Дар дохили onChildAdded
-const div = document.createElement("div");
-div.id = data.key;
-// ИНҶО: Намудро сабт мекунем
-div.setAttribute("data-type", msg.type === 'audio' ? 'audio' : 'text'); 
-div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
+            const div = document.createElement("div");
+            div.id = data.key;
+            div.setAttribute("data-type", msg.type === 'audio' ? 'audio' : 'text'); 
+            div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
             
             if(msg.type === 'audio') {
                 const audioObj = new Audio(msg.audio);
@@ -327,9 +313,35 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
                 
                 const playBtn = div.querySelector(`#play-${data.key}`);
                 const stopBtn = div.querySelector(`#stop-${data.key}`);
-                playBtn.onclick = () => { audioObj.play(); playBtn.style.display = "none"; stopBtn.style.display = "block"; };
-                stopBtn.onclick = () => { audioObj.pause(); audioObj.currentTime = 0; stopBtn.style.display = "none"; playBtn.style.display = "block"; };
-                audioObj.onended = () => { stopBtn.style.display = "none"; playBtn.style.display = "block"; };
+                
+                playBtn.onclick = () => {
+                    // Агар аудиои дигар садо дода истода бошад, онро қатъ мекунем
+                    if (currentPlayingAudio) {
+                        currentPlayingAudio.pause();
+                        currentPlayingAudio.currentTime = 0;
+                        document.querySelectorAll('button[id^="stop-"]').forEach(btn => btn.style.display = 'none');
+                        document.querySelectorAll('button[id^="play-"]').forEach(btn => btn.style.display = 'block');
+                    }
+                    
+                    audioObj.play();
+                    currentPlayingAudio = audioObj; 
+                    playBtn.style.display = "none";
+                    stopBtn.style.display = "block";
+                };
+                
+                stopBtn.onclick = () => {
+                    audioObj.pause();
+                    audioObj.currentTime = 0;
+                    currentPlayingAudio = null;
+                    stopBtn.style.display = "none";
+                    playBtn.style.display = "block";
+                };
+                
+                audioObj.onended = () => {
+                    currentPlayingAudio = null;
+                    stopBtn.style.display = "none";
+                    playBtn.style.display = "block";
+                };
             } else {
                 div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
             }
@@ -362,8 +374,7 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus();
-		
-    </script>
+</script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
