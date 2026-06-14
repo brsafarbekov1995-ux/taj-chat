@@ -432,8 +432,8 @@ window.deleteSelected = (type) => {
     100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
 }
 #file-btn {
-    background: #ffffff; /* Фони сафед */
-    border: 2px solid #000000; /* Рамкаи сиёҳ */
+    background-color: #ffffff !important; /* Фони сафед */
+    border: 2px solid #000000 !important; /* Рамкаи сиёҳ */
     width: 45px;
     height: 45px;
     border-radius: 50%;
@@ -441,12 +441,15 @@ window.deleteSelected = (type) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 8px; /* Масофа аз textarea */
-    transition: transform 0.2s;
-    flex-shrink: 0; /* Барои он ки тугма хурд нашавад */
+    margin-right: 8px;
+    flex-shrink: 0;
+    padding: 0; /* Барои марказонии иконка */
 }
+
+/* Ин қисмро нест кунед ё шарҳ диҳед, то рангаш тағйир наёбад */
 #file-btn:active {
     transform: scale(0.9);
+    background-color: #ffffff !important; /* Ранги сафедро нигоҳ медорад */
 }
     </style>
 </head>
@@ -486,9 +489,10 @@ window.deleteSelected = (type) => {
 
 
     <div class="input-panel">
-	<button id="file-btn" class="btn" style="background:none; color:#555; border:1px solid #ccc;">
-        📎
-    </button>
+	<input type="file" id="file-input" style="display:none;">
+<button id="file-btn" onclick="document.getElementById('file-input').click()">
+    <img src="https://cdn-icons-png.flaticon.com/512/726/726938.png" alt="File" style="width: 24px; height: 24px;">
+</button>
         <textarea id="message-input" placeholder="Паём..."></textarea>
         
        <div id="recording-ui">
