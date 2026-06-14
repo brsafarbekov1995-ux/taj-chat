@@ -514,15 +514,12 @@ textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; 
     <div class="chat-box" id="chat-box"></div>
 
     <div class="input-panel">
-    <div id="reply-preview-container" style="display:none; padding:10px; border-left:4px solid #25d366; background:#f9f9f9;"></div>
-    
-    <input type="file" id="file-input" multiple style="display:none;">
-    <button id="file-btn" onclick="document.getElementById('file-input').click()">
-        <img src="https://cdn-icons-png.flaticon.com/512/1092/1092100.png" style="width: 25px;">
-    </button>
-    
-    <textarea id="message-input" placeholder="Паём..."></textarea>
-    </div>
+        <input type="file" id="file-input" multiple style="display:none;">
+        <button id="file-btn" onclick="document.getElementById('file-input').click()">
+            <img src="https://cdn-icons-png.flaticon.com/512/1092/1092100.png" style="width: 25px;">
+        </button>
+        
+        <textarea id="message-input" placeholder="Паём..."></textarea>
         
         <div id="recording-ui" style="display: none;">
             <div class="wave"></div>
