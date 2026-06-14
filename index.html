@@ -485,17 +485,11 @@ window.deleteSelected = (type) => {
     <div class="chat-box" id="chat-box"></div>
 
 
-<div class="input-panel">
-    <input type="file" id="file-input" style="display:none;">
-
-    <button id="file-btn" onclick="document.getElementById('file-input').click()">
-        <img src="https://cdn-icons-png.flaticon.com/512/2958/2958783.png" alt="File" style="width: 24px; height: 24px;">
+    <div class="input-panel">
+	<button id="file-btn" class="btn" style="background:none; color:#555; border:1px solid #ccc;">
+        📎
     </button>
-    
-    <textarea id="message-input" placeholder="Паём..."></textarea>
-    
-    ...
-</div>
+        <textarea id="message-input" placeholder="Паём..."></textarea>
         
        <div id="recording-ui">
     <div class="wave"></div>
