@@ -345,6 +345,16 @@ window.sendMessage = async () => {
 #message-input {
     transition: display 0.3s;
 }
+#preview-ui {
+    display: none; 
+    flex: 1; 
+    align-items: center; 
+    justify-content: center; /* Ҳамаи тугмаҳоро ба мобайн меорад */
+    gap: 20px;               /* Фосилаи байни тугмаҳо */
+    background: white; 
+    padding: 5px 15px; 
+    border-radius: 20px;
+}
     </style>
 </head>
 <body>
@@ -391,12 +401,10 @@ window.sendMessage = async () => {
     <span id="record-timer" class="recording-blink">0:00</span>
 </div>
 
-<div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
-    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366;">▶</button>
+<div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: center; gap: 15px; background: white; padding: 5px 15px; border-radius: 20px;">
+    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
     
-    <span>Овози сабтшуда</span>
-    
-    <button onclick="cancelAudio()" class="btn" style="background:red;">🗑️</button>
+    <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
 </div>
         
        <button id="mic-btn" class="btn">
