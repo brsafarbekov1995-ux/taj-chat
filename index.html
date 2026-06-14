@@ -352,6 +352,41 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus();
+		// Тағйирёбанда барои нигоҳ доштани расм
+let selectedImages = []; 
+
+// Кушодани менюи файл
+window.toggleFileMenu = (e) => {
+    e.stopPropagation();
+    document.getElementById("file-menu").classList.toggle('show');
+};
+
+// Интихоби расм ва нишон додани он дар тугмаи ирсол
+window.handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            selectedImages.push(event.target.result);
+            // Намоиш додани тугмаи ирсол бо шумораи расмҳо
+            const sendBtn = document.getElementById("send-btn");
+            const micBtn = document.getElementById("mic-btn");
+            sendBtn.style.display = "flex";
+            sendBtn.innerText = `➤ (${selectedImages.length})`;
+            micBtn.style.display = "flex"; // Агар лозим бошад
+            micBtn.style.display = "none";
+        };
+        reader.readAsDataURL(file);
+    }
+    document.getElementById("file-menu").classList.remove('show');
+};
+
+// Кушодани расм дар экрани калон
+window.openImageModal = (src) => {
+    const modal = document.getElementById("img-viewer");
+    document.getElementById("full-img").src = src;
+    modal.style.display = "flex";
+};
     </script>
 
     <style>
@@ -391,6 +426,23 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
 #message-input {
     transition: display 0.3s;
 }
+/* Менюи файл */
+#file-menu { 
+    position: absolute; 
+    bottom: 70px; 
+    left: 10px; 
+    background: white; 
+    padding: 10px; 
+    border-radius: 10px; 
+    display: none; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    z-index: 2000;
+}
+#file-menu.show { display: block; }
+#file-menu label { cursor: pointer; padding: 10px; display: block; }
+
+/* Равзанаи калони расм (Modal) */
+.img-viewer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index: 5000; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
@@ -399,12 +451,21 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
         <p>Интернет нест, интизор шавед...</p>
     </div>
     
-<div id="custom-menu">
-    <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
-    <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
-    <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
-    <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
-</div>
+    <div id="custom-menu">
+        <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
+        <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
+        <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
+        <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
+    </div>
+
+    <div id="file-menu" style="position: absolute; bottom: 70px; left: 10px; background: white; padding: 10px; border-radius: 10px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 2000;">
+        <input type="file" id="image-input" accept="image/*" onchange="handleImageSelect(event)" style="display:none;">
+        <label for="image-input" style="cursor:pointer; display:block;">🖼️ Интихоби расм</label>
+    </div>
+
+    <div id="img-viewer" class="img-viewer" onclick="this.style.display='none'">
+        <img id="full-img" style="max-width:90%; max-height:90%; border-radius:10px;">
+    </div>
     
     <div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
         <div class="modal-content">
@@ -428,26 +489,24 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
     <div class="chat-box" id="chat-box"></div>
 
     <div class="input-panel">
+        <span id="file-trigger" onclick="toggleFileMenu(event)" style="cursor:pointer; font-size:24px; margin-right:10px;">📎</span>
+        
         <textarea id="message-input" placeholder="Паём..."></textarea>
         
-       <div id="recording-ui">
-    <div class="wave"></div>
-    <div class="wave" style="animation-delay:0.2s"></div>
-    <div class="wave" style="animation-delay:0.4s"></div>
-    <span id="record-timer" class="recording-blink">0:00</span>
-</div>
+        <div id="recording-ui">
+            <div class="wave"></div>
+            <div class="wave" style="animation-delay:0.2s"></div>
+            <div class="wave" style="animation-delay:0.4s"></div>
+            <span id="record-timer" class="recording-blink">0:00</span>
+        </div>
 
-<div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
-    
-    <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
-    
-    <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
-    
-    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
-    
-</div>
+        <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
+            <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
+            <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
+            <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
+        </div>
         
-       <button id="mic-btn" class="btn">
+        <button id="mic-btn" class="btn">
             <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Mic" style="width: 24px; height: 24px;">
         </button>
         <button id="stop-btn" class="btn" style="display:none; background:red;">
