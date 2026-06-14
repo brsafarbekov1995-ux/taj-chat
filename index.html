@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT - Пурра</title>
-	<script type="module">
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -142,6 +142,7 @@ window.sendMessage = async () => {
                     fileData: reader.result,
                     fileName: file.name,
                     senderId: myId, 
+                    status: "sent",
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     date: new Date().toLocaleDateString()
                 });
@@ -164,6 +165,7 @@ window.sendMessage = async () => {
                 audio: reader.result,
                 duration: recordTimer.innerText,
                 senderId: myId, 
+                status: "sent",
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 date: new Date().toLocaleDateString()
             });
@@ -175,6 +177,7 @@ window.sendMessage = async () => {
         push(messagesRef, { 
             text: inputArea.value, 
             senderId: myId, 
+            status: "sent",
             time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             date: now.toLocaleDateString()
         });
@@ -288,7 +291,7 @@ window.deleteSelected = (type) => {
     finishSelection(); 
 };
 
-// --- Рендери Паёмҳо бо иловаи галочка ---
+// --- Рендери Паёмҳо бо логикаи дурусти галочка ---
 onChildAdded(messagesRef, (data) => {
     let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
     if (hidden.includes(data.key)) return;
@@ -309,50 +312,40 @@ onChildAdded(messagesRef, (data) => {
     div.setAttribute("data-type", msg.type || 'text'); 
     div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
     
-    // Логикаи галочка (танҳо барои паёмҳои ман)
-    const tickHtml = msg.senderId === myId ? `<span class="tick-wrapper tick-green">✔✔</span>` : "";
+    // --- Логикаи галочка ---
+    let tickHtml = "";
+    if (msg.senderId === myId) {
+        let ticks = "✔"; 
+        let colorClass = "tick-gray"; 
+        if (msg.status === "delivered") { ticks = "✔✔"; colorClass = "tick-gray"; } 
+        else if (msg.status === "read") { ticks = "✔✔✔"; colorClass = "tick-green"; }
+        tickHtml = `<span class="tick-wrapper ${colorClass}">${ticks}</span>`;
+    }
 
-    // Рендери Файл
+    // Рендери UI
     if(msg.type === 'file') {
         div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
     } 
-    // Рендери Аудио
     else if(msg.type === 'audio') {
         const audioObj = new Audio(msg.audio);
         div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
             <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
             <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-            <span>🎙️ ${msg.duration}</span>
+            <span>🎙️ ${msg.duration || ""}</span>
         </div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
         
         const playBtn = div.querySelector(`#play-${data.key}`);
         const stopBtn = div.querySelector(`#stop-${data.key}`);
         playBtn.onclick = () => {
-            if (currentPlayingAudio) {
-                currentPlayingAudio.pause();
-                currentPlayingAudio.currentTime = 0;
-                document.querySelectorAll('button[id^="stop-"]').forEach(btn => btn.style.display = 'none');
-                document.querySelectorAll('button[id^="play-"]').forEach(btn => btn.style.display = 'block');
-            }
-            audioObj.play();
-            currentPlayingAudio = audioObj; 
-            playBtn.style.display = "none";
-            stopBtn.style.display = "block";
+            if (currentPlayingAudio) { currentPlayingAudio.pause(); currentPlayingAudio.currentTime = 0; }
+            audioObj.play(); currentPlayingAudio = audioObj; 
+            playBtn.style.display = "none"; stopBtn.style.display = "block";
         };
         stopBtn.onclick = () => {
-            audioObj.pause();
-            audioObj.currentTime = 0;
-            currentPlayingAudio = null;
-            stopBtn.style.display = "none";
-            playBtn.style.display = "block";
-        };
-        audioObj.onended = () => {
-            currentPlayingAudio = null;
-            stopBtn.style.display = "none";
-            playBtn.style.display = "block";
+            audioObj.pause(); audioObj.currentTime = 0;
+            stopBtn.style.display = "none"; playBtn.style.display = "block";
         };
     } 
-    // Рендери Матн
     else {
         div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
     }
@@ -360,6 +353,12 @@ onChildAdded(messagesRef, (data) => {
     div.onclick = () => window.toggleSelect(data.key, div);
     document.getElementById("chat-box").appendChild(div);
     document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+
+    // Автоматикӣ нав кардани статус
+    if (msg.senderId !== myId) {
+        if (msg.status === "sent") update(ref(db, 'messages/' + data.key), { status: "delivered" });
+        if (msg.status !== "read") update(ref(db, 'messages/' + data.key), { status: "read" });
+    }
 });
 
 onChildRemoved(messagesRef, (data) => { const element = document.getElementById(data.key); if (element) element.remove(); });
@@ -367,7 +366,24 @@ onChildRemoved(messagesRef, (data) => { const element = document.getElementById(
 onChildChanged(messagesRef, (data) => {
     const msg = data.val();
     const element = document.getElementById(data.key);
-    if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
+    if (!element) return;
+
+    if (msg.text) {
+        const textDiv = element.querySelector('.msg-text');
+        if (textDiv) textDiv.innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+    }
+
+    if (msg.senderId === myId) {
+        let ticks = "✔";
+        let colorClass = "tick-gray";
+        if (msg.status === "delivered") { ticks = "✔✔"; }
+        else if (msg.status === "read") { ticks = "✔✔✔"; colorClass = "tick-green"; }
+        
+        const timeDiv = element.querySelector('.msg-time');
+        if (timeDiv) {
+            timeDiv.innerHTML = `<span class="tick-wrapper ${colorClass}">${ticks}</span> ${msg.time}`;
+        }
+    }
 });
 
 // --- Санҷиши Интернет ---
@@ -443,7 +459,8 @@ textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; 
 /* --- Галочкаҳо (Ticks) --- */
 .tick-wrapper { display: inline-block; margin-right: 4px; font-size: 12px; }
 .tick-gray { color: #999; }
-.tick-green { color: #4fc3f7; } 
+.tick-green { color: #25d366; }
+.tick-wrapper { font-size: 12px; margin-right: 4px; }
    </style>
 </head>
 <body>
