@@ -73,16 +73,22 @@ micBtn.onclick = async () => {
         mediaRecorder.onstop = () => {
             audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
             recordingUi.style.display = "none";
-            previewUi.style.display = "flex"; // Инҷо дуруст аст
+            previewUi.style.display = "flex"; 
+            
+            // Аниматсияро қатъ мекунем (нест мекунем)
+            stopBtn.classList.remove("stop-pulsing");
         };
 
         mediaRecorder.start();
         
-        // Ин қисматро илова кунед:
+        // Намоиш додани UI-и сабт
         inputArea.style.display = "none"; 
         micBtn.style.display = "none";
         recordingUi.style.display = "flex";
         stopBtn.style.display = "flex";
+        
+        // Илова кардани аниматсияи сурхи мигаткунанда ба тугмаи Stop
+        stopBtn.classList.add("stop-pulsing");
 
         let seconds = 0;
         timerInterval = setInterval(() => {
@@ -92,10 +98,14 @@ micBtn.onclick = async () => {
     } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
 };
 
-// 2. Қатъи сабт
+// 2. Қатъи сабт (барои эҳтиёт, инҷо ҳам илова кунед)
 stopBtn.onclick = () => {
     mediaRecorder.stop();
     clearInterval(timerInterval);
+    
+    // Аниматсияро аз инҷо ҳам қатъ мекунем
+    stopBtn.classList.remove("stop-pulsing");
+    
     stopBtn.style.display = "none";
     sendBtn.style.display = "flex";
 };
