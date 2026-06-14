@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TAJ CHAT - Professional</title>
+    <title>TAJ CHAT - Пурра</title>
+    
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* Header */
-        .header { background: rgba(7, 94, 84, 0.85); backdrop-filter: blur(8px); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        
-        /* Chat Area */
+        .header { background: rgba(7, 94, 84, 0.85); backdrop-filter: blur(8px); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
         .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
         .date-divider { align-self: center; background: #e1f3fb; color: #555; padding: 4px 12px; border-radius: 8px; font-size: 11px; margin: 10px 0; }
         .msg-bubble { position: relative; padding: 8px 10px 22px 10px; border-radius: 15px; max-width: 80%; width: fit-content; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
@@ -20,35 +17,33 @@
         .selected-message { background-color: #95c7f0 !important; }
         .msg-text { font-size: 15px; word-wrap: break-word; }
         .msg-time { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: #777; }
-        
-        /* Input Panel */
-        .input-panel { padding: 10px; background: #f0f0f0; display: flex; gap: 8px; align-items: center; }
-        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; height: 40px; resize: none; }
-        .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #075e54; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        
-        /* Overlays & Modals */
+        #menu-trigger { cursor: pointer; font-size: 24px; }
         #custom-menu { position: absolute; right: 20px; top: 60px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 9999; width: 180px; padding: 5px 0; opacity: 0; visibility: hidden; transition: 0.2s; }
         #custom-menu.show { opacity: 1; visibility: visible; }
         #custom-menu button { display: block; width: 100%; padding: 10px 15px; border: none; background: none; text-align: left; cursor: pointer; }
         .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 3000; }
         .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
         .btn-action { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #075e54; color: white; }
-        
-        /* Loaders & Animation */
-        #loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .input-panel { padding: 10px; background: transparent; display: flex; gap: 8px; align-items: center; }
+        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; height: 40px; resize: none; }
+        .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #075e54; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #recording-ui { display: none; flex: 1; align-items: center; justify-content: center; gap: 10px; }
+        #preview-ui { display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px; }
+        .wave { width: 3px; height: 15px; background: #075e54; animation: wave-anim 1s infinite; }
+        @keyframes wave-anim { 0%, 100% { height: 10px; } 50% { height: 25px; } }
         .recording-blink { animation: blink 1s infinite; color: red; }
         @keyframes blink { 50% { opacity: 0; } }
-        .wave { width: 3px; height: 15px; background: #075e54; animation: wave-anim 1s infinite; margin: 0 2px; }
-        @keyframes wave-anim { 0%, 100% { height: 10px; } 50% { height: 25px; } }
+        .offline-mode { pointer-events: none; opacity: 0.5; filter: grayscale(1); }
+        #loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div id="loading-indicator">
         <div class="spinner"></div>
-        <p>Пайвастшавӣ...</p>
+        <p>Интернет нест, интизор шавед...</p>
     </div>
 
     <div class="header">
@@ -61,15 +56,18 @@
     <div class="input-panel">
         <button id="file-btn" class="btn" style="background:#888;" onclick="document.getElementById('file-input').click()">📁</button>
         <textarea id="message-input" placeholder="Паём..."></textarea>
-        
-        <div id="recording-ui" style="display:none; flex:1; align-items:center; justify-content:center; gap:5px;">
-            <div class="wave"></div><div class="wave" style="animation-delay:0.2s"></div>
+
+        <div id="recording-ui">
+            <div class="wave"></div>
+            <div class="wave" style="animation-delay:0.2s"></div>
+            <div class="wave" style="animation-delay:0.4s"></div>
             <span id="record-timer" class="recording-blink">0:00</span>
         </div>
 
-        <div id="preview-ui" style="display:none; flex:1; align-items:center; justify-content:space-between; background:white; padding:5px 15px; border-radius:20px;">
-            <button onclick="cancelAudio()" class="btn" style="background:red;">🗑️</button>
-            <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366;">▶</button>
+        <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
+            <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
+            <span style="font-size: 14px; color: #555;">Сабтшуда</span>
+            <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
         </div>
 
         <button id="mic-btn" class="btn">🎙️</button>
@@ -102,9 +100,9 @@
     <input type="file" id="file-input" style="display: none;" multiple>
 
     <script type="module">
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
         const firebaseConfig = { apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28", databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com", projectId: "taj-chat-c87de" };
         const app = initializeApp(firebaseConfig);
@@ -115,59 +113,159 @@
         let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
         localStorage.setItem("chat_user_id", myId);
 
-        let lastDate = "", selectedMessages = [], mediaRecorder, audioChunks = [], audioBlob = null, timerInterval, currentAudio = null, isPlaying = false;
-        const inputArea = document.getElementById("message-input"), recordingUi = document.getElementById("recording-ui"), previewUi = document.getElementById("preview-ui"), micBtn = document.getElementById("mic-btn"), sendBtn = document.getElementById("send-btn"), stopBtn = document.getElementById("stop-btn"), recordTimer = document.getElementById("record-timer"), menu = document.getElementById("custom-menu"), trigger = document.getElementById("menu-trigger");
+        let lastDate = "";
+        let selectedMessages = [];
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob = null;
+        let timerInterval;
+        let currentAudio = null;
+        let isPlaying = false;
 
-        // UI Helpers
-        window.closeModal = (id) => document.getElementById(id).style.display = "none";
-        
+        const inputArea = document.getElementById("message-input");
+        const recordingUi = document.getElementById("recording-ui");
+        const previewUi = document.getElementById("preview-ui");
+        const micBtn = document.getElementById("mic-btn");
+        const sendBtn = document.getElementById("send-btn");
+        const stopBtn = document.getElementById("stop-btn");
+        const recordTimer = document.getElementById("record-timer");
+        const menu = document.getElementById("custom-menu");
+        const trigger = document.getElementById("menu-trigger");
+
         inputArea.addEventListener("input", () => {
-            micBtn.style.display = inputArea.value.trim() ? "none" : "flex";
-            sendBtn.style.display = inputArea.value.trim() ? "flex" : "none";
+            if (inputArea.value.trim() !== "") {
+                micBtn.style.display = "none";
+                sendBtn.style.display = "flex";
+            } else {
+                micBtn.style.display = "flex";
+                sendBtn.style.display = "none";
+            }
         });
 
-        // Audio Logic
+        window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
+
         micBtn.onclick = async () => {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-            mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-            mediaRecorder.onstop = () => { audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' }); recordingUi.style.display = "none"; previewUi.style.display = "flex"; };
-            mediaRecorder.start();
-            inputArea.style.display = "none"; micBtn.style.display = "none"; recordingUi.style.display = "flex"; stopBtn.style.display = "flex";
-            let seconds = 0;
-            timerInterval = setInterval(() => { seconds++; recordTimer.innerText = new Date(seconds * 1000).toISOString().substr(14, 5); }, 1000);
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
+                    recordingUi.style.display = "none";
+                    previewUi.style.display = "flex";
+                };
+                mediaRecorder.start();
+                inputArea.style.display = "none";
+                micBtn.style.display = "none";
+                recordingUi.style.display = "flex";
+                stopBtn.style.display = "flex";
+                let seconds = 0;
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    recordTimer.innerText = new Date(seconds * 1000).toISOString().substr(14, 5);
+                }, 1000);
+            } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
         };
 
-        stopBtn.onclick = () => { mediaRecorder.stop(); clearInterval(timerInterval); stopBtn.style.display = "none"; sendBtn.style.display = "flex"; };
+        stopBtn.onclick = () => {
+            mediaRecorder.stop();
+            clearInterval(timerInterval);
+            stopBtn.style.display = "none";
+            sendBtn.style.display = "flex";
+        };
 
         window.toggleAudioPreview = () => {
             const btn = document.getElementById("toggle-play-btn");
-            if (!currentAudio) { currentAudio = new Audio(URL.createObjectURL(audioBlob)); currentAudio.onended = () => { isPlaying = false; btn.innerText = "▶"; }; }
-            isPlaying ? currentAudio.pause() : currentAudio.play();
-            btn.innerText = isPlaying ? "▶" : "■";
+            if (!currentAudio) {
+                const url = URL.createObjectURL(audioBlob);
+                currentAudio = new Audio(url);
+                currentAudio.onended = () => { isPlaying = false; btn.innerText = "▶"; };
+            }
+            if (isPlaying) { currentAudio.pause(); btn.innerText = "▶"; } 
+            else { currentAudio.play(); btn.innerText = "■"; }
             isPlaying = !isPlaying;
         };
 
         window.cancelAudio = () => {
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            isPlaying = false; audioBlob = null; previewUi.style.display = "none"; inputArea.style.display = "block"; micBtn.style.display = "flex"; sendBtn.style.display = "none";
+            isPlaying = false;
+            document.getElementById("toggle-play-btn").innerText = "▶";
+            audioBlob = null;
+            previewUi.style.display = "none";
+            inputArea.style.display = "block";
+            micBtn.style.display = "flex";
+            sendBtn.style.display = "none";
         };
 
         window.sendMessage = async () => {
             if (audioBlob) {
                 const reader = new FileReader();
                 reader.readAsDataURL(audioBlob);
-                reader.onloadend = () => { push(messagesRef, { type: 'audio', audio: reader.result, duration: recordTimer.innerText, senderId: myId, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: new Date().toLocaleDateString() }); cancelAudio(); };
-            } else if (inputArea.value.trim()) {
-                push(messagesRef, { text: inputArea.value, senderId: myId, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: new Date().toLocaleDateString() });
-                inputArea.value = ""; sendBtn.style.display = "none"; micBtn.style.display = "flex";
+                reader.onloadend = () => {
+                    push(messagesRef, { type: 'audio', audio: reader.result, duration: recordTimer.innerText, senderId: myId, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: new Date().toLocaleDateString() });
+                    cancelAudio();
+                };
+            } else if (inputArea.value.trim() !== "") {
+                const now = new Date();
+                push(messagesRef, { text: inputArea.value, senderId: myId, time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: now.toLocaleDateString() });
+                inputArea.value = "";
+                sendBtn.style.display = "none";
+                micBtn.style.display = "flex";
             }
         };
 
-        // File Upload
+        window.toggleSelect = (msgKey, element) => {
+            if (selectedMessages.includes(msgKey)) {
+                selectedMessages = selectedMessages.filter(id => id !== msgKey);
+                element.classList.remove('selected-message');
+            } else {
+                selectedMessages.push(msgKey);
+                element.classList.add('selected-message');
+            }
+            trigger.style.visibility = selectedMessages.length > 0 ? "visible" : "hidden";
+        };
+
+        window.openMenuAtTop = (e) => { e.stopPropagation(); menu.classList.toggle('show'); };
+        
+        document.addEventListener("click", (e) => { if (!e.target.closest('#custom-menu') && !e.target.closest('#menu-trigger')) menu.classList.remove('show'); });
+
+        const finishSelection = () => { selectedMessages.forEach(id => document.getElementById(id)?.classList.remove('selected-message')); selectedMessages = []; trigger.style.visibility = "hidden"; menu.classList.remove('show'); };
+
+        window.copyMessage = () => { if (selectedMessages.length > 0) { const text = document.getElementById(selectedMessages[0]).querySelector('.msg-text')?.innerText || ""; navigator.clipboard.writeText(text); } finishSelection(); };
+
+        window.openEditModal = () => { if (selectedMessages.length > 0) { const msgKey = selectedMessages[0]; const msgElement = document.getElementById(msgKey); if (msgElement.classList.contains('my-msg')) { const textElement = msgElement.querySelector('.msg-text'); if(textElement) { document.getElementById("edit-input").value = textElement.innerText; document.getElementById("edit-modal").style.display = "flex"; } } } menu.classList.remove('show'); };
+
+        window.saveEdit = () => { const newText = document.getElementById("edit-input").value; const msgKey = selectedMessages[0]; if (newText && msgKey) { update(ref(db, 'messages/' + msgKey), { text: newText }); } closeModal('edit-modal'); finishSelection(); };
+
+        window.showDeleteModal = () => { document.getElementById("delete-modal").style.display = "flex"; menu.classList.remove('show'); };
+
+        window.clearAllMessages = () => { remove(messagesRef); document.getElementById("chat-box").innerHTML = ""; lastDate = ""; finishSelection(); };
+
+        window.deleteSelected = (type) => { selectedMessages.forEach(msgKey => { if (type === 'me') { let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]"); hidden.push(msgKey); localStorage.setItem("hidden_msgs", JSON.stringify(hidden)); document.getElementById(msgKey)?.remove(); } else remove(ref(db, 'messages/' + msgKey)); }); closeModal('delete-modal'); finishSelection(); };
+
+        onChildAdded(messagesRef, (data) => {
+            let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
+            if (hidden.includes(data.key)) return;
+            const msg = data.val();
+            const currentDate = msg.date || "Имрӯз";
+            if (currentDate !== lastDate) { const dateDiv = document.createElement("div"); dateDiv.className = "date-divider"; dateDiv.innerText = currentDate; document.getElementById("chat-box").appendChild(dateDiv); lastDate = currentDate; }
+            const div = document.createElement("div"); div.id = data.key; div.setAttribute("data-type", msg.type || 'text'); div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
+            if(msg.type === 'audio') { const audioObj = new Audio(msg.audio); div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button><button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button><span>🎙️ ${msg.duration}</span></div><div class="msg-time">${msg.time}</div>`; const playBtn = div.querySelector(`#play-${data.key}`); const stopBtn = div.querySelector(`#stop-${data.key}`); playBtn.onclick = () => { audioObj.play(); playBtn.style.display = "none"; stopBtn.style.display = "block"; }; stopBtn.onclick = () => { audioObj.pause(); audioObj.currentTime = 0; stopBtn.style.display = "none"; playBtn.style.display = "block"; }; audioObj.onended = () => { stopBtn.style.display = "none"; playBtn.style.display = "block"; }; }
+            else if (msg.type === 'file') { let content = ""; if (msg.fileType.startsWith('image/')) content = `<img src="${msg.fileUrl}" style="max-width:100%; border-radius:10px; cursor:pointer;" onclick="window.open('${msg.fileUrl}')">`; else content = `<a href="${msg.fileUrl}" target="_blank" style="color:#075e54; text-decoration:none;">📁 ${msg.fileName}</a>`; div.innerHTML = `<div class="msg-text" style="padding:5px;">${content}</div><div class="msg-time">${msg.time}</div>`; }
+            else { div.innerHTML = `<div class="msg-text">${msg.text ? msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>') : ''}</div><div class="msg-time">${msg.time}</div>`; }
+            div.onclick = () => window.toggleSelect(data.key, div);
+            document.getElementById("chat-box").appendChild(div);
+            document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+        });
+
+        onChildRemoved(messagesRef, (data) => { const element = document.getElementById(data.key); if (element) element.remove(); });
+        
+        onChildChanged(messagesRef, (data) => { const msg = data.val(); const element = document.getElementById(data.key); if (element && msg.text) element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); });
+
         document.getElementById('file-input').addEventListener('change', async (e) => {
             const file = e.target.files[0];
+            if (!file) return;
             const storageReference = sRef(storage, 'uploads/' + Date.now() + '_' + file.name);
             const snapshot = await uploadBytes(storageReference, file);
             const url = await getDownloadURL(snapshot.ref);
@@ -175,32 +273,8 @@
             e.target.value = "";
         });
 
-        // Chat Logic (Render)
-        onChildAdded(messagesRef, (data) => {
-            let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
-            if (hidden.includes(data.key)) return;
-            const msg = data.val();
-            if (msg.date !== lastDate) {
-                const dateDiv = document.createElement("div"); dateDiv.className = "date-divider"; dateDiv.innerText = msg.date;
-                document.getElementById("chat-box").appendChild(dateDiv); lastDate = msg.date;
-            }
-            const div = document.createElement("div"); div.id = data.key; div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
-            if(msg.type === 'audio') div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><button onclick="playMsg('${data.key}')">▶</button><span>🎙️ ${msg.duration}</span></div><div class="msg-time">${msg.time}</div>`;
-            else if(msg.type === 'file') div.innerHTML = `<div class="msg-text">${msg.fileType.startsWith('image') ? `<img src="${msg.fileUrl}" style="max-width:100px">` : `📁 ${msg.fileName}`}</div><div class="msg-time">${msg.time}</div>`;
-            else div.innerHTML = `<div class="msg-text">${msg.text}</div><div class="msg-time">${msg.time}</div>`;
-            div.onclick = () => { selectedMessages = [data.key]; document.querySelectorAll('.msg-bubble').forEach(el => el.classList.remove('selected-message')); div.classList.add('selected-message'); trigger.style.visibility = "visible"; };
-            document.getElementById("chat-box").appendChild(div);
-            document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-        });
-
-        window.openMenuAtTop = (e) => { e.stopPropagation(); menu.classList.toggle('show'); };
-        window.copyMessage = () => { navigator.clipboard.writeText(document.getElementById(selectedMessages[0]).querySelector('.msg-text').innerText); menu.classList.remove('show'); };
-        window.openEditModal = () => { document.getElementById("edit-input").value = document.getElementById(selectedMessages[0]).querySelector('.msg-text').innerText; document.getElementById("edit-modal").style.display = "flex"; menu.classList.remove('show'); };
-        window.saveEdit = () => { update(ref(db, 'messages/' + selectedMessages[0]), { text: document.getElementById("edit-input").value }); closeModal('edit-modal'); };
-        window.showDeleteModal = () => { document.getElementById("delete-modal").style.display = "flex"; menu.classList.remove('show'); };
-        window.deleteSelected = (type) => { type === 'me' ? (function(){ let h = JSON.parse(localStorage.getItem("hidden_msgs") || "[]"); h.push(selectedMessages[0]); localStorage.setItem("hidden_msgs", JSON.stringify(h)); document.getElementById(selectedMessages[0]).remove(); })() : remove(ref(db, 'messages/' + selectedMessages[0])); closeModal('delete-modal'); };
-        window.clearAllMessages = () => { remove(messagesRef); document.getElementById("chat-box").innerHTML = ""; };
-        window.playMsg = (key) => { new Audio(document.getElementById(key).getAttribute("data-audio")).play(); };
+        function updateOnlineStatus() { const indicator = document.getElementById("loading-indicator"); if (!navigator.onLine) { indicator.style.display = "flex"; document.body.classList.add("offline-mode"); } else { indicator.style.display = "none"; document.body.classList.remove("offline-mode"); } }
+        window.addEventListener('online', updateOnlineStatus); window.addEventListener('offline', updateOnlineStatus); updateOnlineStatus();
     </script>
 </body>
 </html>
