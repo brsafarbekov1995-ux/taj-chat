@@ -418,32 +418,51 @@ updateOnlineStatus();
 
 
 
-window.startReply = () => {
-    if (selectedMessages.length > 0) {
-        const msgKey = selectedMessages[0];
-        const msgElement = document.getElementById(msgKey);
-        const msgText = msgElement.querySelector('.msg-text')?.innerText || "Файл/Овоз";
-        replyingToMessage = { id: msgKey, text: msgText };
-        document.getElementById("reply-text").innerText = "Ҷавоб: " + msgText.substring(0, 30);
-        document.getElementById("reply-preview").style.display = "block";
-        menu.classList.remove('show');
-        finishSelection();
-    }
+
+
+
+
+
+
+// Илова кардани ҳолати интихоб
+let isSelectionMode = false;
+
+// Функсия барои интихоби дарозмуддат (Long Press)
+let pressTimer;
+const setupLongPress = (div, msgKey) => {
+    div.onmousedown = () => {
+        pressTimer = setTimeout(() => {
+            enableSelection(msgKey, div);
+        }, 800); // 800 мс - интизории дароз
+    };
+    div.onmouseup = () => clearTimeout(pressTimer);
 };
 
-window.cancelReply = () => {
-    replyingToMessage = null;
-    document.getElementById("reply-preview").style.display = "none";
-};
-
-
-
-
-let quoteHtml = "";
-if (msg.replyTo) {
-    quoteHtml = `<div class="quote-box"><b>Ҷавоб ба:</b> ${msg.replyTo.text}</div>`;
+function enableSelection(msgKey, element) {
+    isSelectionMode = true;
+    document.getElementById("chat-box").classList.add("selection-mode");
+    element.classList.add("message-selected");
+    selectedMessages.push(msgKey);
+    
+    // Барои баровардани клавиатура (тавассути фокус ба textarea)
+    inputArea.focus(); 
 }
-// Ва дар дохили div.innerHTML, ${quoteHtml} -ро пеш аз ${msg.text} гузоред
+
+// Ҳангоми омадани паём, мо доирачаро илова мекунем
+// Дар қисми onChildAdded:
+div.innerHTML = `<span class="select-checkbox"></span>` + div.innerHTML;
+setupLongPress(div, data.key);
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -510,19 +529,31 @@ textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; 
 
 
 
+/* Ранги паём ҳангоми интихоб шудан */
+.message-selected {
+    background-color: #cce5ff !important;
+}
 
-/* Пешнамоиши ҷавоб дар болои input */
-#reply-preview { 
-    display: none; padding: 10px; background: #f0f2f5; 
-    border-left: 4px solid #075e54; margin-bottom: 5px; 
-    border-radius: 5px; font-size: 13px; position: relative; 
+/* Доирачаи интихоб дар паҳлӯи паём */
+.select-checkbox {
+    display: none;
+    position: absolute;
+    left: -30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #075e54;
+    border-radius: 50%;
+    cursor: pointer;
 }
-/* Иқтибоси дохили паёмак */
-.quote-box { 
-    background: rgba(0,0,0,0.05); padding: 5px; 
-    border-left: 3px solid #075e54; margin-bottom: 5px; 
-    font-size: 12px; font-style: italic; border-radius: 4px;
+
+/* Ҳангоми дар ҳолати интихоб будан, доирача намоён мешавад */
+.selection-mode .select-checkbox {
+    display: block;
 }
+
+
 
 
 
@@ -536,19 +567,6 @@ textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; 
 </div>
 
 <div id="custom-menu">
-
-
-
-
-<div id="reply-preview">
-    <div id="reply-text"></div>
-    <button onclick="cancelReply()" style="position:absolute; right:5px; top:5px; border:none; background:none;">✖</button>
-</div>
-
-
-
-
-
     <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
     <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
     <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
