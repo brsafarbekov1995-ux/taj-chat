@@ -73,13 +73,11 @@ micBtn.onclick = async () => {
         mediaRecorder.onstop = () => {
             audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
             recordingUi.style.display = "none";
-            previewUi.style.display = "flex"; // Инҷо дуруст аст
+            previewUi.style.display = "flex";
         };
 
         mediaRecorder.start();
-        
-        // Ин қисматро илова кунед:
-        inputArea.style.display = "none"; 
+        inputArea.style.display = "none";
         micBtn.style.display = "none";
         recordingUi.style.display = "flex";
         stopBtn.style.display = "flex";
@@ -109,7 +107,7 @@ window.toggleAudioPreview = () => {
         currentAudio = new Audio(url);
         currentAudio.onended = () => {
             isPlaying = false;
-            btn.innerText = "▶️";
+            btn.innerText = "▶";
         };
     }
 
@@ -134,8 +132,8 @@ window.cancelAudio = () => {
     
     audioBlob = null;
     previewUi.style.display = "none";
-    inputArea.style.display = "block"; // Майдони матнро бармегардонем
-    micBtn.style.display = "flex";      // Микрофонро бармегардонем
+    inputArea.style.display = "block";
+    micBtn.style.display = "flex";
     sendBtn.style.display = "none";
 };
 
@@ -266,7 +264,7 @@ window.sendMessage = async () => {
                 div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
                                     <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
                                     <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-                                    <span>🎙️ ${msg.duration}</span>
+                                    <span>🎤 ${msg.duration}</span>
                                 </div><div class="msg-time">${msg.time}</div>`;
                 
                 const playBtn = div.querySelector(`#play-${data.key}`);
@@ -309,49 +307,10 @@ window.sendMessage = async () => {
     </script>
 
     <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body { 
-    font-family: sans-serif; 
-    background: #e5ddd5; 
-    height: 100dvh; 
-    display: flex; 
-    flex-direction: column; 
-    overflow: hidden; 
-}
-
-.header {
-    background: rgba(7, 94, 84, 0.75); /* Ранги сабзи шаффоф */
-    backdrop-filter: blur(20px);        /* Эффекти хирашавӣ */
-    -webkit-backdrop-filter: blur(20px); 
-    
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    
-    padding: 15px;
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.chat-box {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 20px;
-    padding-top: 80px; /* ИНҶО: Фосила барои он ки паёми якум зери header намонад */
-    position: relative;
-}
-
-/* Илова кунед: Барои зебогии паёмҳо ҳангоми гузаштан */
-.chat-box::-webkit-scrollbar {
-    width: 0px; /* Скролл-барро дар мобилӣ пинҳон мекунад */
-}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: rgba(7, 94, 84, 0.85); backdrop-filter: blur(8px); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
         .date-divider { align-self: center; background: #e1f3fb; color: #555; padding: 4px 12px; border-radius: 8px; font-size: 11px; margin: 10px 0; }
         .msg-bubble { position: relative; padding: 8px 10px 22px 10px; border-radius: 15px; max-width: 80%; width: fit-content; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .my-msg { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 2px; }
@@ -379,11 +338,6 @@ body {
         #loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-		/* Ин барои он аст, ки ҳангоми пинҳон шудани textarea, 
-   recording-ui ё preview-ui пурра ҷойро гиранд */
-#message-input {
-    transition: display 0.3s;
-}
     </style>
 </head>
 <body>
@@ -431,13 +385,11 @@ body {
 </div>
 
 <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
+    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366;">▶</button>
     
-    <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
+    <span>Овози сабтшуда</span>
     
-    <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
-    
-    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
-    
+    <button onclick="cancelAudio()" class="btn" style="background:red;">🗑️</button>
 </div>
         
        <button id="mic-btn" class="btn">
