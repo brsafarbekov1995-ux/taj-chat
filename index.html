@@ -324,27 +324,43 @@ onChildAdded(messagesRef, (data) => {
 
     // Рендери UI
     if(msg.type === 'file') {
-        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
-    } 
-    else if(msg.type === 'audio') {
-        const audioObj = new Audio(msg.audio);
-        div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
-            <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
-            <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-            <span>🎙️ ${msg.duration || ""}</span>
-        </div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+// ... пеш аз ин қисм аудио объект сохта шудааст (audioObj)
+div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+    <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
+    <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
+    <span>🎙️ ${msg.duration || ""}</span>
+</div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+
+const playBtn = div.querySelector(`#play-${data.key}`);
+const stopBtn = div.querySelector(`#stop-${data.key}`);
+
+playBtn.onclick = () => {
+    // 1. Агар аудиои дигаре бошад, онро қатъ мекунем
+    if (currentPlayingAudio && currentPlayingAudio !== audioObj) {
+        currentPlayingAudio.pause();
+        currentPlayingAudio.currentTime = 0;
         
-        const playBtn = div.querySelector(`#play-${data.key}`);
-        const stopBtn = div.querySelector(`#stop-${data.key}`);
-        playBtn.onclick = () => {
-            if (currentPlayingAudio) { currentPlayingAudio.pause(); currentPlayingAudio.currentTime = 0; }
-            audioObj.play(); currentPlayingAudio = audioObj; 
-            playBtn.style.display = "none"; stopBtn.style.display = "block";
-        };
-        stopBtn.onclick = () => {
-            audioObj.pause(); audioObj.currentTime = 0;
-            stopBtn.style.display = "none"; playBtn.style.display = "block";
-        };
+        // 2. ИН ҚИСМ МУҲИМ АСТ: Ҳамаи тугмаҳои Stop-ро дар тамоми чат пайдо мекунем
+        document.querySelectorAll('button[id^="stop-"]').forEach(btn => btn.style.display = "none");
+        document.querySelectorAll('button[id^="play-"]').forEach(btn => btn.style.display = "block");
+    }
+
+    // 3. Аудиои ҷориро пахш мекунем
+    audioObj.play();
+    currentPlayingAudio = audioObj; 
+    
+    // 4. Тугмаҳои худи ҳамин аудиоро иваз мекунем
+    playBtn.style.display = "none";
+    stopBtn.style.display = "block";
+};
+
+stopBtn.onclick = () => {
+    audioObj.pause();
+    audioObj.currentTime = 0;
+    stopBtn.style.display = "none";
+    playBtn.style.display = "block";
+    currentPlayingAudio = null; // Хотираро тоза мекунем
+};
     } 
     else {
         div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
