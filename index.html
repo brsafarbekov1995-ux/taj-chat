@@ -377,7 +377,7 @@ onChildChanged(messagesRef, (data) => {
         let ticks = "✔";
         let colorClass = "tick-gray";
         if (msg.status === "delivered") { ticks = "✔✔"; }
-        else if (msg.status === "read") { ticks = "✔✔✔"; colorClass = "tick-green"; }
+        else if (msg.status === "read") { ticks = "✔✔"; colorClass = "tick-green"; }
         
         const timeDiv = element.querySelector('.msg-time');
         if (timeDiv) {
