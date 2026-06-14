@@ -413,6 +413,40 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
+
+
+
+
+
+window.startReply = () => {
+    if (selectedMessages.length > 0) {
+        const msgKey = selectedMessages[0];
+        const msgElement = document.getElementById(msgKey);
+        const msgText = msgElement.querySelector('.msg-text')?.innerText || "Файл/Овоз";
+        replyingToMessage = { id: msgKey, text: msgText };
+        document.getElementById("reply-text").innerText = "Ҷавоб: " + msgText.substring(0, 30);
+        document.getElementById("reply-preview").style.display = "block";
+        menu.classList.remove('show');
+        finishSelection();
+    }
+};
+
+window.cancelReply = () => {
+    replyingToMessage = null;
+    document.getElementById("reply-preview").style.display = "none";
+};
+
+
+
+
+let quoteHtml = "";
+if (msg.replyTo) {
+    quoteHtml = `<div class="quote-box"><b>Ҷавоб ба:</b> ${msg.replyTo.text}</div>`;
+}
+// Ва дар дохили div.innerHTML, ${quoteHtml} -ро пеш аз ${msg.text} гузоред
+
+
+
 </script>
  <style>
  /* --- Танзимоти умумӣ --- */
@@ -473,6 +507,26 @@ textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; 
 .tick-gray { color: #999; }
 .tick-green { color: #25d366; }
 .tick-wrapper { font-size: 12px; margin-right: 4px; }
+
+
+
+
+/* Пешнамоиши ҷавоб дар болои input */
+#reply-preview { 
+    display: none; padding: 10px; background: #f0f2f5; 
+    border-left: 4px solid #075e54; margin-bottom: 5px; 
+    border-radius: 5px; font-size: 13px; position: relative; 
+}
+/* Иқтибоси дохили паёмак */
+.quote-box { 
+    background: rgba(0,0,0,0.05); padding: 5px; 
+    border-left: 3px solid #075e54; margin-bottom: 5px; 
+    font-size: 12px; font-style: italic; border-radius: 4px;
+}
+
+
+
+
    </style>
 </head>
 <body>
@@ -482,6 +536,19 @@ textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; 
 </div>
 
 <div id="custom-menu">
+
+
+
+
+<div id="reply-preview">
+    <div id="reply-text"></div>
+    <button onclick="cancelReply()" style="position:absolute; right:5px; top:5px; border:none; background:none;">✖</button>
+</div>
+
+
+
+
+
     <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
     <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
     <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
