@@ -4,7 +4,356 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT - Пурра</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
+            databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
+            projectId: "taj-chat-c87de"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const messagesRef = ref(db, 'messages');
+
+        // Идентификатори истифодабаранда
+        let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
+        localStorage.setItem("chat_user_id", myId);
+
+        // Тағйирёбандаҳои ҷаҳонӣ
+        let lastDate = "";
+        let selectedMessages = [];
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob = null;
+        let timerInterval;
+        let currentAudio = null; 
+
+        // Элементҳои UI
+        const inputArea = document.getElementById("message-input");
+        const recordingUi = document.getElementById("recording-ui");
+        const previewUi = document.getElementById("preview-ui");
+        const micBtn = document.getElementById("mic-btn");
+        const sendBtn = document.getElementById("send-btn");
+        const stopBtn = document.getElementById("stop-btn");
+        const recordTimer = document.getElementById("record-timer");
+        const menu = document.getElementById("custom-menu");
+        const trigger = document.getElementById("menu-trigger");
+
+        // --- Логикаи воридкунии матн ---
+        inputArea.addEventListener("input", () => {
+            if (inputArea.value.trim() !== "") {
+                micBtn.style.display = "none";
+                sendBtn.style.display = "flex";
+            } else {
+                micBtn.style.display = "flex";
+                sendBtn.style.display = "none";
+            }
+        });
+
+      // --- Идоракунии Модалҳо ---
+window.closeModal = (id) => {
+    document.getElementById(id).style.display = "none";
+};
+
+// --- Логикаи Аудио ---
+let isPlaying = false; 
+
+// 1. Оғози сабти овоз
+micBtn.onclick = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        
+        mediaRecorder.onstop = () => {
+            audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
+            recordingUi.style.display = "none";
+            previewUi.style.display = "flex"; // Инҷо дуруст аст
+        };
+
+        mediaRecorder.start();
+        
+        // Ин қисматро илова кунед:
+        inputArea.style.display = "none"; 
+        micBtn.style.display = "none";
+        recordingUi.style.display = "flex";
+        stopBtn.style.display = "flex";
+
+        let seconds = 0;
+        timerInterval = setInterval(() => {
+            seconds++;
+            recordTimer.innerText = new Date(seconds * 1000).toISOString().substr(14, 5);
+        }, 1000);
+    } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
+};
+
+// 2. Қатъи сабт
+stopBtn.onclick = () => {
+    mediaRecorder.stop();
+    clearInterval(timerInterval);
+    stopBtn.style.display = "none";
+    sendBtn.style.display = "flex";
+};
+
+// 3. Плеери муттаҳидшуда (Play/Pause бо як тугма)
+window.toggleAudioPreview = () => {
+    const btn = document.getElementById("toggle-play-btn");
     
+    if (!currentAudio) {
+        const url = URL.createObjectURL(audioBlob);
+        currentAudio = new Audio(url);
+        currentAudio.onended = () => {
+            isPlaying = false;
+            btn.innerText = "▶";
+        };
+    }
+
+    if (isPlaying) {
+        currentAudio.pause();
+        btn.innerText = "▶";
+    } else {
+        currentAudio.play();
+        btn.innerText = "■";
+    }
+    isPlaying = !isPlaying;
+};
+
+// 4. Бекор кардани аудио (бо иконаи сатил)
+window.cancelAudio = () => {
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
+    isPlaying = false;
+    document.getElementById("toggle-play-btn").innerText = "▶";
+    
+    audioBlob = null;
+    previewUi.style.display = "none";
+    inputArea.style.display = "block"; // Майдони матнро бармегардонем
+    micBtn.style.display = "flex";      // Микрофонро бармегардонем
+    sendBtn.style.display = "none";
+};
+
+// --- Ирсоли Паём ---
+window.sendMessage = async () => {
+    if (audioBlob) {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+            push(messagesRef, { 
+                type: 'audio',
+                audio: reader.result,
+                duration: recordTimer.innerText,
+                senderId: myId, 
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toLocaleDateString()
+            });
+            cancelAudio();
+        };
+    } else if (inputArea.value.trim() !== "") {
+        const now = new Date();
+        push(messagesRef, { 
+            text: inputArea.value, 
+            senderId: myId, 
+            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: now.toLocaleDateString()
+        });
+        inputArea.value = "";
+        sendBtn.style.display = "none";
+        micBtn.style.display = "flex";
+    }
+};
+
+// --- Функсияҳои Меню ва Идоракунӣ ---
+
+window.toggleSelect = (msgKey, element) => {
+    if (selectedMessages.includes(msgKey)) {
+        selectedMessages = selectedMessages.filter(id => id !== msgKey);
+        element.classList.remove('selected-message');
+    } else {
+        selectedMessages.push(msgKey);
+        element.classList.add('selected-message');
+    }
+    trigger.style.visibility = selectedMessages.length > 0 ? "visible" : "hidden";
+};
+
+window.openMenuAtTop = (e) => { 
+    e.stopPropagation(); 
+    
+    // Агар паём интихоб шуда бошад
+    if (selectedMessages.length > 0) {
+        const msgKey = selectedMessages[0];
+        const msgElement = document.getElementById(msgKey);
+        
+        if (msgElement) {
+            const type = msgElement.getAttribute("data-type"); // 'audio' ё 'text'
+
+            // ID-ҳои дуруст мувофиқи HTML-и шумо:
+            const copyBtn = document.getElementById("btn-copy");
+            const editBtn = document.getElementById("btn-edit");
+
+            if (copyBtn && editBtn) {
+                if (type === 'audio') {
+                    // Агар аудио бошад, тугмаҳоро пинҳон мекунем
+                    copyBtn.style.display = "none";
+                    editBtn.style.display = "none";
+                } else {
+                    // Агар матн бошад, тугмаҳоро бармегардонем
+                    copyBtn.style.display = "block";
+                    editBtn.style.display = "block";
+                }
+            }
+        }
+    }
+    
+    // Кушодани меню
+    menu.classList.toggle('show'); 
+};
+
+document.addEventListener("click", (e) => { 
+    if (!e.target.closest('#custom-menu') && !e.target.closest('#menu-trigger')) {
+        menu.classList.remove('show'); 
+    }
+});
+// Ёрирасон барои тоза кардани интихоб ва пӯшидани меню
+const finishSelection = () => {
+    selectedMessages.forEach(id => document.getElementById(id)?.classList.remove('selected-message'));
+    selectedMessages = [];
+    trigger.style.visibility = "hidden";
+    menu.classList.remove('show');
+};
+
+window.copyMessage = () => {
+    if (selectedMessages.length > 0) {
+        const text = document.getElementById(selectedMessages[0]).querySelector('.msg-text')?.innerText || "";
+        navigator.clipboard.writeText(text);
+    }
+    finishSelection();
+};
+
+window.openEditModal = () => {
+    if (selectedMessages.length > 0) {
+        const msgKey = selectedMessages[0];
+        const msgElement = document.getElementById(msgKey);
+        if (msgElement.classList.contains('my-msg')) {
+            const textElement = msgElement.querySelector('.msg-text');
+            if(textElement) {
+                document.getElementById("edit-input").value = textElement.innerText;
+                document.getElementById("edit-modal").style.display = "flex";
+            }
+        }
+    }
+    menu.classList.remove('show');
+};
+
+window.saveEdit = () => {
+    const newText = document.getElementById("edit-input").value;
+    const msgKey = selectedMessages[0];
+    if (newText && msgKey) { update(ref(db, 'messages/' + msgKey), { text: newText }); }
+    closeModal('edit-modal');
+    finishSelection(); // Тоза кардани интихоб
+};
+
+window.showDeleteModal = () => { 
+    document.getElementById("delete-modal").style.display = "flex"; 
+    menu.classList.remove('show'); 
+};
+
+window.clearAllMessages = () => {
+    remove(messagesRef);
+    document.getElementById("chat-box").innerHTML = "";
+    lastDate = ""; 
+    finishSelection();
+};
+
+window.deleteSelected = (type) => {
+    selectedMessages.forEach(msgKey => {
+        if (type === 'me') {
+            let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
+            hidden.push(msgKey);
+            localStorage.setItem("hidden_msgs", JSON.stringify(hidden));
+            document.getElementById(msgKey)?.remove();
+        } else remove(ref(db, 'messages/' + msgKey));
+    });
+    closeModal('delete-modal');
+    finishSelection(); // Тоза кардани интихоб
+};
+
+        // --- Рендери Паёмҳо ---
+        onChildAdded(messagesRef, (data) => {
+            let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
+            if (hidden.includes(data.key)) return;
+            
+            const msg = data.val();
+            const currentDate = msg.date || "Имрӯз";
+            
+            if (currentDate !== lastDate) {
+                const dateDiv = document.createElement("div");
+                dateDiv.className = "date-divider";
+                dateDiv.innerText = currentDate;
+                document.getElementById("chat-box").appendChild(dateDiv);
+                lastDate = currentDate;
+            }
+
+         // Дар дохили onChildAdded
+const div = document.createElement("div");
+div.id = data.key;
+// ИНҶО: Намудро сабт мекунем
+div.setAttribute("data-type", msg.type === 'audio' ? 'audio' : 'text'); 
+div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
+            
+            if(msg.type === 'audio') {
+                const audioObj = new Audio(msg.audio);
+                div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+                                    <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
+                                    <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
+                                    <span>🎙️ ${msg.duration}</span>
+                                </div><div class="msg-time">${msg.time}</div>`;
+                
+                const playBtn = div.querySelector(`#play-${data.key}`);
+                const stopBtn = div.querySelector(`#stop-${data.key}`);
+                playBtn.onclick = () => { audioObj.play(); playBtn.style.display = "none"; stopBtn.style.display = "block"; };
+                stopBtn.onclick = () => { audioObj.pause(); audioObj.currentTime = 0; stopBtn.style.display = "none"; playBtn.style.display = "block"; };
+                audioObj.onended = () => { stopBtn.style.display = "none"; playBtn.style.display = "block"; };
+            } else {
+                div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
+            }
+            
+            div.onclick = () => window.toggleSelect(data.key, div);
+            document.getElementById("chat-box").appendChild(div);
+            document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+        });
+
+        onChildRemoved(messagesRef, (data) => { const element = document.getElementById(data.key); if (element) element.remove(); });
+        
+        onChildChanged(messagesRef, (data) => {
+            const msg = data.val();
+            const element = document.getElementById(data.key);
+            if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
+        });
+
+        // --- Санҷиши Интернет ---
+        function updateOnlineStatus() {
+            const indicator = document.getElementById("loading-indicator");
+            const body = document.body;
+            if (!navigator.onLine) {
+                indicator.style.display = "flex"; 
+                body.classList.add("offline-mode");
+            } else {
+                indicator.style.display = "none";
+                body.classList.remove("offline-mode");
+            }
+        }
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+    </script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
@@ -37,51 +386,26 @@
         #loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+		/* Ин барои он аст, ки ҳангоми пинҳон шудани textarea, 
+   recording-ui ё preview-ui пурра ҷойро гиранд */
+#message-input {
+    transition: display 0.3s;
+}
     </style>
 </head>
 <body>
-
     <div id="loading-indicator">
         <div class="spinner"></div>
         <p>Интернет нест, интизор шавед...</p>
     </div>
-
-    <div class="header">
-        <span>TAJ CHAT</span> 
-        <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
-    </div>
-
-    <div class="chat-box" id="chat-box"></div>
-
-    <div class="input-panel">
-        <button id="file-btn" class="btn" style="background:#888;" onclick="document.getElementById('file-input').click()">📁</button>
-        <textarea id="message-input" placeholder="Паём..."></textarea>
-
-        <div id="recording-ui">
-            <div class="wave"></div>
-            <div class="wave" style="animation-delay:0.2s"></div>
-            <div class="wave" style="animation-delay:0.4s"></div>
-            <span id="record-timer" class="recording-blink">0:00</span>
-        </div>
-
-        <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
-            <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
-            <span style="font-size: 14px; color: #555;">Сабтшуда</span>
-            <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
-        </div>
-
-        <button id="mic-btn" class="btn">🎙️</button>
-        <button id="stop-btn" class="btn" style="display:none; background:red;">■</button>
-        <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
-    </div>
-
-    <div id="custom-menu">
-        <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
-        <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
-        <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
-        <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
-    </div>
-
+    
+<div id="custom-menu">
+    <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
+    <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
+    <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
+    <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
+</div>
+    
     <div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
         <div class="modal-content">
             <h3>Нест кардан:</h3>
@@ -96,185 +420,40 @@
             <button class="btn-action" onclick="saveEdit()">Сабт кардан</button>
         </div>
     </div>
+    
+    <div class="header">
+        <span></span> <div>TAJ CHAT</div> <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
+    </div>
+    
+    <div class="chat-box" id="chat-box"></div>
 
-    <input type="file" id="file-input" style="display: none;" multiple>
-
-    <script type="module">
-        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-        const firebaseConfig = { apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28", databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com", projectId: "taj-chat-c87de" };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const storage = getStorage(app);
-        const messagesRef = ref(db, 'messages');
-
-        let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
-        localStorage.setItem("chat_user_id", myId);
-
-        let lastDate = "";
-        let selectedMessages = [];
-        let mediaRecorder;
-        let audioChunks = [];
-        let audioBlob = null;
-        let timerInterval;
-        let currentAudio = null;
-        let isPlaying = false;
-
-        const inputArea = document.getElementById("message-input");
-        const recordingUi = document.getElementById("recording-ui");
-        const previewUi = document.getElementById("preview-ui");
-        const micBtn = document.getElementById("mic-btn");
-        const sendBtn = document.getElementById("send-btn");
-        const stopBtn = document.getElementById("stop-btn");
-        const recordTimer = document.getElementById("record-timer");
-        const menu = document.getElementById("custom-menu");
-        const trigger = document.getElementById("menu-trigger");
-
-        inputArea.addEventListener("input", () => {
-            if (inputArea.value.trim() !== "") {
-                micBtn.style.display = "none";
-                sendBtn.style.display = "flex";
-            } else {
-                micBtn.style.display = "flex";
-                sendBtn.style.display = "none";
-            }
-        });
-
-        window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
-
-        micBtn.onclick = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
-                    recordingUi.style.display = "none";
-                    previewUi.style.display = "flex";
-                };
-                mediaRecorder.start();
-                inputArea.style.display = "none";
-                micBtn.style.display = "none";
-                recordingUi.style.display = "flex";
-                stopBtn.style.display = "flex";
-                let seconds = 0;
-                timerInterval = setInterval(() => {
-                    seconds++;
-                    recordTimer.innerText = new Date(seconds * 1000).toISOString().substr(14, 5);
-                }, 1000);
-            } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
-        };
-
-        stopBtn.onclick = () => {
-            mediaRecorder.stop();
-            clearInterval(timerInterval);
-            stopBtn.style.display = "none";
-            sendBtn.style.display = "flex";
-        };
-
-        window.toggleAudioPreview = () => {
-            const btn = document.getElementById("toggle-play-btn");
-            if (!currentAudio) {
-                const url = URL.createObjectURL(audioBlob);
-                currentAudio = new Audio(url);
-                currentAudio.onended = () => { isPlaying = false; btn.innerText = "▶"; };
-            }
-            if (isPlaying) { currentAudio.pause(); btn.innerText = "▶"; } 
-            else { currentAudio.play(); btn.innerText = "■"; }
-            isPlaying = !isPlaying;
-        };
-
-        window.cancelAudio = () => {
-            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            isPlaying = false;
-            document.getElementById("toggle-play-btn").innerText = "▶";
-            audioBlob = null;
-            previewUi.style.display = "none";
-            inputArea.style.display = "block";
-            micBtn.style.display = "flex";
-            sendBtn.style.display = "none";
-        };
-
-        window.sendMessage = async () => {
-            if (audioBlob) {
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = () => {
-                    push(messagesRef, { type: 'audio', audio: reader.result, duration: recordTimer.innerText, senderId: myId, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: new Date().toLocaleDateString() });
-                    cancelAudio();
-                };
-            } else if (inputArea.value.trim() !== "") {
-                const now = new Date();
-                push(messagesRef, { text: inputArea.value, senderId: myId, time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: now.toLocaleDateString() });
-                inputArea.value = "";
-                sendBtn.style.display = "none";
-                micBtn.style.display = "flex";
-            }
-        };
-
-        window.toggleSelect = (msgKey, element) => {
-            if (selectedMessages.includes(msgKey)) {
-                selectedMessages = selectedMessages.filter(id => id !== msgKey);
-                element.classList.remove('selected-message');
-            } else {
-                selectedMessages.push(msgKey);
-                element.classList.add('selected-message');
-            }
-            trigger.style.visibility = selectedMessages.length > 0 ? "visible" : "hidden";
-        };
-
-        window.openMenuAtTop = (e) => { e.stopPropagation(); menu.classList.toggle('show'); };
+    <div class="input-panel">
+        <textarea id="message-input" placeholder="Паём..."></textarea>
         
-        document.addEventListener("click", (e) => { if (!e.target.closest('#custom-menu') && !e.target.closest('#menu-trigger')) menu.classList.remove('show'); });
+       <div id="recording-ui">
+    <div class="wave"></div>
+    <div class="wave" style="animation-delay:0.2s"></div>
+    <div class="wave" style="animation-delay:0.4s"></div>
+    <span id="record-timer" class="recording-blink">0:00</span>
+</div>
 
-        const finishSelection = () => { selectedMessages.forEach(id => document.getElementById(id)?.classList.remove('selected-message')); selectedMessages = []; trigger.style.visibility = "hidden"; menu.classList.remove('show'); };
-
-        window.copyMessage = () => { if (selectedMessages.length > 0) { const text = document.getElementById(selectedMessages[0]).querySelector('.msg-text')?.innerText || ""; navigator.clipboard.writeText(text); } finishSelection(); };
-
-        window.openEditModal = () => { if (selectedMessages.length > 0) { const msgKey = selectedMessages[0]; const msgElement = document.getElementById(msgKey); if (msgElement.classList.contains('my-msg')) { const textElement = msgElement.querySelector('.msg-text'); if(textElement) { document.getElementById("edit-input").value = textElement.innerText; document.getElementById("edit-modal").style.display = "flex"; } } } menu.classList.remove('show'); };
-
-        window.saveEdit = () => { const newText = document.getElementById("edit-input").value; const msgKey = selectedMessages[0]; if (newText && msgKey) { update(ref(db, 'messages/' + msgKey), { text: newText }); } closeModal('edit-modal'); finishSelection(); };
-
-        window.showDeleteModal = () => { document.getElementById("delete-modal").style.display = "flex"; menu.classList.remove('show'); };
-
-        window.clearAllMessages = () => { remove(messagesRef); document.getElementById("chat-box").innerHTML = ""; lastDate = ""; finishSelection(); };
-
-        window.deleteSelected = (type) => { selectedMessages.forEach(msgKey => { if (type === 'me') { let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]"); hidden.push(msgKey); localStorage.setItem("hidden_msgs", JSON.stringify(hidden)); document.getElementById(msgKey)?.remove(); } else remove(ref(db, 'messages/' + msgKey)); }); closeModal('delete-modal'); finishSelection(); };
-
-        onChildAdded(messagesRef, (data) => {
-            let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
-            if (hidden.includes(data.key)) return;
-            const msg = data.val();
-            const currentDate = msg.date || "Имрӯз";
-            if (currentDate !== lastDate) { const dateDiv = document.createElement("div"); dateDiv.className = "date-divider"; dateDiv.innerText = currentDate; document.getElementById("chat-box").appendChild(dateDiv); lastDate = currentDate; }
-            const div = document.createElement("div"); div.id = data.key; div.setAttribute("data-type", msg.type || 'text'); div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
-            if(msg.type === 'audio') { const audioObj = new Audio(msg.audio); div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button><button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button><span>🎙️ ${msg.duration}</span></div><div class="msg-time">${msg.time}</div>`; const playBtn = div.querySelector(`#play-${data.key}`); const stopBtn = div.querySelector(`#stop-${data.key}`); playBtn.onclick = () => { audioObj.play(); playBtn.style.display = "none"; stopBtn.style.display = "block"; }; stopBtn.onclick = () => { audioObj.pause(); audioObj.currentTime = 0; stopBtn.style.display = "none"; playBtn.style.display = "block"; }; audioObj.onended = () => { stopBtn.style.display = "none"; playBtn.style.display = "block"; }; }
-            else if (msg.type === 'file') { let content = ""; if (msg.fileType.startsWith('image/')) content = `<img src="${msg.fileUrl}" style="max-width:100%; border-radius:10px; cursor:pointer;" onclick="window.open('${msg.fileUrl}')">`; else content = `<a href="${msg.fileUrl}" target="_blank" style="color:#075e54; text-decoration:none;">📁 ${msg.fileName}</a>`; div.innerHTML = `<div class="msg-text" style="padding:5px;">${content}</div><div class="msg-time">${msg.time}</div>`; }
-            else { div.innerHTML = `<div class="msg-text">${msg.text ? msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>') : ''}</div><div class="msg-time">${msg.time}</div>`; }
-            div.onclick = () => window.toggleSelect(data.key, div);
-            document.getElementById("chat-box").appendChild(div);
-            document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-        });
-
-        onChildRemoved(messagesRef, (data) => { const element = document.getElementById(data.key); if (element) element.remove(); });
+<div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
+    
+    <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
+    
+    <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
+    
+    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
+    
+</div>
         
-        onChildChanged(messagesRef, (data) => { const msg = data.val(); const element = document.getElementById(data.key); if (element && msg.text) element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); });
-
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const storageReference = sRef(storage, 'uploads/' + Date.now() + '_' + file.name);
-            const snapshot = await uploadBytes(storageReference, file);
-            const url = await getDownloadURL(snapshot.ref);
-            push(messagesRef, { type: 'file', fileUrl: url, fileName: file.name, fileType: file.type, senderId: myId, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), date: new Date().toLocaleDateString() });
-            e.target.value = "";
-        });
-
-        function updateOnlineStatus() { const indicator = document.getElementById("loading-indicator"); if (!navigator.onLine) { indicator.style.display = "flex"; document.body.classList.add("offline-mode"); } else { indicator.style.display = "none"; document.body.classList.remove("offline-mode"); } }
-        window.addEventListener('online', updateOnlineStatus); window.addEventListener('offline', updateOnlineStatus); updateOnlineStatus();
-    </script>
+       <button id="mic-btn" class="btn">
+            <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Mic" style="width: 24px; height: 24px;">
+        </button>
+        <button id="stop-btn" class="btn" style="display:none; background:red;">
+            <img src="https://cdn-icons-png.flaticon.com/512/18401/18401499.png" alt="Stop" style="width: 24px; height: 24px;">
+        </button>
+        <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
+    </div>
 </body>
 </html>
