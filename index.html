@@ -318,7 +318,7 @@ onChildAdded(messagesRef, (data) => {
         let ticks = "✔"; 
         let colorClass = "tick-gray"; 
         if (msg.status === "delivered") { ticks = "✔✔"; colorClass = "tick-gray"; } 
-        else if (msg.status === "read") { ticks = "✔✔✔"; colorClass = "tick-green"; }
+        else if (msg.status === "read") { ticks = "✔✔"; colorClass = "tick-green"; }
         tickHtml = `<span class="tick-wrapper ${colorClass}">${ticks}</span>`;
     }
 
