@@ -169,77 +169,120 @@ window.sendMessage = async () => {
     }
 };
 
-        // --- Функсияҳои Меню ва Идоракунӣ ---
-        window.toggleSelect = (msgKey, element) => {
-            if (selectedMessages.includes(msgKey)) {
-                selectedMessages = selectedMessages.filter(id => id !== msgKey);
-                element.classList.remove('selected-message');
-            } else {
-                selectedMessages.push(msgKey);
-                element.classList.add('selected-message');
-            }
-            trigger.style.visibility = selectedMessages.length > 0 ? "visible" : "hidden";
-        };
+// --- Функсияҳои Меню ва Идоракунӣ ---
 
-        window.openMenuAtTop = (e) => { e.stopPropagation(); menu.classList.toggle('show'); };
+window.toggleSelect = (msgKey, element) => {
+    if (selectedMessages.includes(msgKey)) {
+        selectedMessages = selectedMessages.filter(id => id !== msgKey);
+        element.classList.remove('selected-message');
+    } else {
+        selectedMessages.push(msgKey);
+        element.classList.add('selected-message');
+    }
+    trigger.style.visibility = selectedMessages.length > 0 ? "visible" : "hidden";
+};
+
+window.openMenuAtTop = (e) => { 
+    e.stopPropagation(); 
+    
+    // Агар паём интихоб шуда бошад
+    if (selectedMessages.length > 0) {
+        const msgKey = selectedMessages[0];
+        const msgElement = document.getElementById(msgKey);
         
-        document.addEventListener("click", (e) => { 
-            if (!e.target.closest('#custom-menu') && !e.target.closest('#menu-trigger')) menu.classList.remove('show'); 
-        });
+        if (msgElement) {
+            const type = msgElement.getAttribute("data-type"); // 'audio' ё 'text'
 
-        window.copyMessage = () => {
-            if (selectedMessages.length > 0) navigator.clipboard.writeText(document.getElementById(selectedMessages[0]).querySelector('.msg-text')?.innerText || "");
-            menu.classList.remove('show');
-        };
+            // ID-ҳои дуруст мувофиқи HTML-и шумо:
+            const copyBtn = document.getElementById("btn-copy");
+            const editBtn = document.getElementById("btn-edit");
 
-        window.openEditModal = () => {
-            if (selectedMessages.length > 0) {
-                const msgKey = selectedMessages[0];
-                const msgElement = document.getElementById(msgKey);
-                if (msgElement.classList.contains('my-msg')) {
-                    const textElement = msgElement.querySelector('.msg-text');
-                    if(textElement) {
-                        document.getElementById("edit-input").value = textElement.innerText;
-                        document.getElementById("edit-modal").style.display = "flex";
-                    }
+            if (copyBtn && editBtn) {
+                if (type === 'audio') {
+                    // Агар аудио бошад, тугмаҳоро пинҳон мекунем
+                    copyBtn.style.display = "none";
+                    editBtn.style.display = "none";
+                } else {
+                    // Агар матн бошад, тугмаҳоро бармегардонем
+                    copyBtn.style.display = "block";
+                    editBtn.style.display = "block";
                 }
             }
-            menu.classList.remove('show');
-        };
+        }
+    }
+    
+    // Кушодани меню
+    menu.classList.toggle('show'); 
+};
 
-        window.saveEdit = () => {
-            const newText = document.getElementById("edit-input").value;
-            const msgKey = selectedMessages[0];
-            if (newText && msgKey) { update(ref(db, 'messages/' + msgKey), { text: newText }); }
-            closeModal('edit-modal');
-            selectedMessages.forEach(id => document.getElementById(id).classList.remove('selected-message'));
-            selectedMessages = [];
-            trigger.style.visibility = "hidden";
-        };
+document.addEventListener("click", (e) => { 
+    if (!e.target.closest('#custom-menu') && !e.target.closest('#menu-trigger')) {
+        menu.classList.remove('show'); 
+    }
+});
+// Ёрирасон барои тоза кардани интихоб ва пӯшидани меню
+const finishSelection = () => {
+    selectedMessages.forEach(id => document.getElementById(id)?.classList.remove('selected-message'));
+    selectedMessages = [];
+    trigger.style.visibility = "hidden";
+    menu.classList.remove('show');
+};
 
-        window.showDeleteModal = () => { document.getElementById("delete-modal").style.display = "flex"; menu.classList.remove('show'); };
+window.copyMessage = () => {
+    if (selectedMessages.length > 0) {
+        const text = document.getElementById(selectedMessages[0]).querySelector('.msg-text')?.innerText || "";
+        navigator.clipboard.writeText(text);
+    }
+    finishSelection();
+};
 
-        window.clearAllMessages = () => {
-            remove(messagesRef);
-            document.getElementById("chat-box").innerHTML = "";
-            lastDate = ""; 
-            menu.classList.remove('show');
-            trigger.style.visibility = "hidden";
-        };
+window.openEditModal = () => {
+    if (selectedMessages.length > 0) {
+        const msgKey = selectedMessages[0];
+        const msgElement = document.getElementById(msgKey);
+        if (msgElement.classList.contains('my-msg')) {
+            const textElement = msgElement.querySelector('.msg-text');
+            if(textElement) {
+                document.getElementById("edit-input").value = textElement.innerText;
+                document.getElementById("edit-modal").style.display = "flex";
+            }
+        }
+    }
+    menu.classList.remove('show');
+};
 
-        window.deleteSelected = (type) => {
-            selectedMessages.forEach(msgKey => {
-                if (type === 'me') {
-                    let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
-                    hidden.push(msgKey);
-                    localStorage.setItem("hidden_msgs", JSON.stringify(hidden));
-                    document.getElementById(msgKey)?.remove();
-                } else remove(ref(db, 'messages/' + msgKey));
-            });
-            selectedMessages = []; 
-            trigger.style.visibility = "hidden";
-            closeModal('delete-modal');
-        };
+window.saveEdit = () => {
+    const newText = document.getElementById("edit-input").value;
+    const msgKey = selectedMessages[0];
+    if (newText && msgKey) { update(ref(db, 'messages/' + msgKey), { text: newText }); }
+    closeModal('edit-modal');
+    finishSelection(); // Тоза кардани интихоб
+};
+
+window.showDeleteModal = () => { 
+    document.getElementById("delete-modal").style.display = "flex"; 
+    menu.classList.remove('show'); 
+};
+
+window.clearAllMessages = () => {
+    remove(messagesRef);
+    document.getElementById("chat-box").innerHTML = "";
+    lastDate = ""; 
+    finishSelection();
+};
+
+window.deleteSelected = (type) => {
+    selectedMessages.forEach(msgKey => {
+        if (type === 'me') {
+            let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
+            hidden.push(msgKey);
+            localStorage.setItem("hidden_msgs", JSON.stringify(hidden));
+            document.getElementById(msgKey)?.remove();
+        } else remove(ref(db, 'messages/' + msgKey));
+    });
+    closeModal('delete-modal');
+    finishSelection(); // Тоза кардани интихоб
+};
 
         // --- Рендери Паёмҳо ---
         onChildAdded(messagesRef, (data) => {
@@ -257,9 +300,12 @@ window.sendMessage = async () => {
                 lastDate = currentDate;
             }
 
-            const div = document.createElement("div");
-            div.id = data.key;
-            div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
+         // Дар дохили onChildAdded
+const div = document.createElement("div");
+div.id = data.key;
+// ИНҶО: Намудро сабт мекунем
+div.setAttribute("data-type", msg.type === 'audio' ? 'audio' : 'text'); 
+div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
             
             if(msg.type === 'audio') {
                 const audioObj = new Audio(msg.audio);
@@ -353,12 +399,12 @@ window.sendMessage = async () => {
         <p>Интернет нест, интизор шавед...</p>
     </div>
     
-    <div id="custom-menu">
-        <button onclick="copyMessage()">📋 Нусха кардан</button>
-        <button onclick="openEditModal()">✏️ Таҳрир</button>
-        <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
-        <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
-    </div>
+<div id="custom-menu">
+    <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
+    <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
+    <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
+    <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
+</div>
     
     <div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
         <div class="modal-content">
