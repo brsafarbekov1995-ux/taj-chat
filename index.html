@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT - Пурра</title>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         // Firebase Configuration
         const firebaseConfig = {
@@ -448,7 +448,7 @@ div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
 </div>
         
        <button id="mic-btn" class="btn">
-    <img src="https://avatars.mds.yandex.net/i?id=07b8e2aa567bdec7a944f5c2002d5e62_l-10415036-images-thumbs&ref=rim&n=13&w=900&h=900" alt="Mic" style="width: 24px; height: 24px;">
+    <img src="https://static.vecteezy.com/system/resources/previews/017/337/951/non_2x/podcast-home-microphone-icon-flat-style-vector.jpg" alt="Mic" style="width: 24px; height: 24px;">
 </button>
         <button id="stop-btn" class="btn" style="display:none; background:red;">
             <img src="https://cdn-icons-png.flaticon.com/512/18401/18401499.png" alt="Stop" style="width: 24px; height: 24px;">
