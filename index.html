@@ -73,11 +73,13 @@ micBtn.onclick = async () => {
         mediaRecorder.onstop = () => {
             audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
             recordingUi.style.display = "none";
-            previewUi.style.display = "flex";
+            previewUi.style.display = "flex"; // Инҷо дуруст аст
         };
 
         mediaRecorder.start();
-        inputArea.style.display = "none";
+        
+        // Ин қисматро илова кунед:
+        inputArea.style.display = "none"; 
         micBtn.style.display = "none";
         recordingUi.style.display = "flex";
         stopBtn.style.display = "flex";
@@ -132,8 +134,8 @@ window.cancelAudio = () => {
     
     audioBlob = null;
     previewUi.style.display = "none";
-    inputArea.style.display = "block";
-    micBtn.style.display = "flex";
+    inputArea.style.display = "block"; // Майдони матнро бармегардонем
+    micBtn.style.display = "flex";      // Микрофонро бармегардонем
     sendBtn.style.display = "none";
 };
 
@@ -264,7 +266,7 @@ window.sendMessage = async () => {
                 div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
                                     <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
                                     <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-                                    <span>🎤 ${msg.duration}</span>
+                                    <span>🎙️ ${msg.duration}</span>
                                 </div><div class="msg-time">${msg.time}</div>`;
                 
                 const playBtn = div.querySelector(`#play-${data.key}`);
@@ -338,6 +340,11 @@ window.sendMessage = async () => {
         #loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+		/* Ин барои он аст, ки ҳангоми пинҳон шудани textarea, 
+   recording-ui ё preview-ui пурра ҷойро гиранд */
+#message-input {
+    transition: display 0.3s;
+}
     </style>
 </head>
 <body>
@@ -385,11 +392,13 @@ window.sendMessage = async () => {
 </div>
 
 <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
-    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366;">▶</button>
     
-    <span>Овози сабтшуда</span>
+    <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
     
-    <button onclick="cancelAudio()" class="btn" style="background:red;">🗑️</button>
+    <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
+    
+    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
+    
 </div>
         
        <button id="mic-btn" class="btn">
