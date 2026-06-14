@@ -109,16 +109,16 @@ window.toggleAudioPreview = () => {
         currentAudio = new Audio(url);
         currentAudio.onended = () => {
             isPlaying = false;
-            btn.innerText = "▶";
+            btn.innerText = "▶️";
         };
     }
 
     if (isPlaying) {
         currentAudio.pause();
-        btn.innerText = "▶";
+        btn.innerText = "🔊";
     } else {
         currentAudio.play();
-        btn.innerText = "■";
+        btn.innerText = "🔇";
     }
     isPlaying = !isPlaying;
 };
@@ -266,7 +266,7 @@ window.sendMessage = async () => {
                 div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
                                     <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
                                     <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-                                    <span>🎤 ${msg.duration}</span>
+                                    <span>🎙️ ${msg.duration}</span>
                                 </div><div class="msg-time">${msg.time}</div>`;
                 
                 const playBtn = div.querySelector(`#play-${data.key}`);
