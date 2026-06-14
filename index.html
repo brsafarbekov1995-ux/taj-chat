@@ -296,13 +296,20 @@ onChildAdded(messagesRef, (data) => {
     let replyHtml = msg.replyTo ? `<div class="quoted-msg" onclick="document.getElementById('${msg.replyTo.id}').scrollIntoView()">Ҷавоб ба: ${msg.replyTo.text}</div>` : "";
     
     let tickHtml = "";
-    if (msg.senderId === myId) {
-        let ticks = "⚫"; 
-        let colorClass = "tick-gray"; 
-        if (msg.status === "delivered") { ticks = "🟡"; colorClass = "tick-gray"; } 
-        else if (msg.status === "read") { ticks = "🟢"; colorClass = "tick-green"; }
-        tickHtml = `<span class="tick-wrapper ${colorClass}">${ticks}</span>`;
+if (msg.senderId === myId) {
+    let ticks = "⚫";
+    let colorClass = "tick-black"; // Синфи нави CSS барои ранги сиёҳ
+    
+    if (msg.status === "delivered") { 
+        ticks = "🟡"; 
+        colorClass = "tick-yellow"; 
+    } else if (msg.status === "read") { 
+        ticks = "🟢"; 
+        colorClass = "tick-green"; 
     }
+    
+    tickHtml = `<span class="tick-wrapper ${colorClass}">${ticks}</span>`;
+}
 
     if(msg.type === 'file') {
         div.innerHTML = `${replyHtml}<div class="msg-text">📥<a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
@@ -372,10 +379,10 @@ onChildChanged(messagesRef, (data) => {
     }
 
     if (msg.senderId === myId) {
-        let ticks = "✔";
+        let ticks = "⚫";
         let colorClass = "tick-gray";
-        if (msg.status === "delivered") { ticks = "✔✔"; }
-        else if (msg.status === "read") { ticks = "✔✔"; colorClass = "tick-green"; }
+        if (msg.status === "delivered") { ticks = "🟡"; }
+        else if (msg.status === "read") { ticks = "🟢"; colorClass = "tick-green"; }
         
         const timeDiv = element.querySelector('.msg-time');
         if (timeDiv) {
