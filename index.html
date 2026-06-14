@@ -306,8 +306,8 @@ window.deleteSelected = (type) => {
             if(msg.type === 'audio') {
                 const audioObj = new Audio(msg.audio);
                 div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
-                                    <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
-                                    <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
+                                    <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:60px; height:60px;">▶</button>
+                                    <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:60px; height:60px; display:none;">■</button>
                                     <span>🎙️ ${msg.duration}</span>
                                 </div><div class="msg-time">${msg.time}</div>`;
                 
