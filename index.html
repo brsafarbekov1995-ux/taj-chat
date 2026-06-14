@@ -8,89 +8,89 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
-            databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
-            projectId: "taj-chat-c87de"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const messagesRef = ref(db, 'messages');
-
-        // Идентификатори истифодабаранда
-        let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
-        localStorage.setItem("chat_user_id", myId);
-
-        // Тағйирёбандаҳои ҷаҳонӣ
-        let lastDate = "";
-        let selectedMessages = [];
-        let mediaRecorder;
-        let audioChunks = [];
-        let audioBlob = null;
-        let timerInterval;
-        let currentAudio = null; 
-        let currentPlayingAudio = null; // Ин барои қатъ кардани аудиоҳои чат истифода мешавад
-
-        // Элементҳои UI
-        const inputArea = document.getElementById("message-input");
-        const recordingUi = document.getElementById("recording-ui");
-        const previewUi = document.getElementById("preview-ui");
-        const micBtn = document.getElementById("mic-btn");
-        const sendBtn = document.getElementById("send-btn");
-        const stopBtn = document.getElementById("stop-btn");
-        const recordTimer = document.getElementById("record-timer");
-        const menu = document.getElementById("custom-menu");
-        const trigger = document.getElementById("menu-trigger");
-
-        // --- Логикаи воридкунии матн ---
-        inputArea.addEventListener("input", () => {
-            if (inputArea.value.trim() !== "") {
-                micBtn.style.display = "none";
-                sendBtn.style.display = "flex";
-            } else {
-                micBtn.style.display = "flex";
-                sendBtn.style.display = "none";
-            }
-        });
-
-      // --- Идоракунии Модалҳо ---
-window.closeModal = (id) => {
-    document.getElementById(id).style.display = "none";
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
+    databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
+    projectId: "taj-chat-c87de"
 };
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const messagesRef = ref(db, 'messages');
+
+// Идентификатори истифодабаранда
+let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
+localStorage.setItem("chat_user_id", myId);
+
+// Тағйирёбандаҳои ҷаҳонӣ
+let lastDate = "";
+let selectedMessages = [];
+let selectedFiles = []; // Нав барои файлҳо
+let mediaRecorder;
+let audioChunks = [];
+let audioBlob = null;
+let timerInterval;
+let currentAudio = null; 
+let currentPlayingAudio = null; 
+
+// Элементҳои UI
+const inputArea = document.getElementById("message-input");
+const fileInput = document.getElementById("file-input"); // Нав
+const recordingUi = document.getElementById("recording-ui");
+const previewUi = document.getElementById("preview-ui");
+const micBtn = document.getElementById("mic-btn");
+const sendBtn = document.getElementById("send-btn");
+const stopBtn = document.getElementById("stop-btn");
+const recordTimer = document.getElementById("record-timer");
+const menu = document.getElementById("custom-menu");
+const trigger = document.getElementById("menu-trigger");
+
+// --- Логикаи Файлҳо ---
+fileInput.addEventListener('change', (e) => {
+    selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+        micBtn.style.display = "none";
+        sendBtn.style.display = "flex";
+        sendBtn.innerText = `📎 ${selectedFiles.length}`; // Нишон додани миқдор
+    }
+});
+
+// --- Логикаи воридкунии матн ---
+inputArea.addEventListener("input", () => {
+    if (inputArea.value.trim() !== "") {
+        micBtn.style.display = "none";
+        sendBtn.style.display = "flex";
+    } else if (selectedFiles.length === 0) {
+        micBtn.style.display = "flex";
+        sendBtn.style.display = "none";
+    }
+});
+
+// --- Идоракунии Модалҳо ---
+window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
 
 // --- Логикаи Аудио ---
 let isPlaying = false; 
 
-// 1. Оғози сабти овоз
 micBtn.onclick = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
         mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-        
         mediaRecorder.onstop = () => {
             audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
             recordingUi.style.display = "none";
             previewUi.style.display = "flex"; 
-            
-            // Аниматсияро қатъ мекунем (нест мекунем)
             stopBtn.classList.remove("stop-pulsing");
         };
-
         mediaRecorder.start();
-        
-        // Намоиш додани UI-и сабт
         inputArea.style.display = "none"; 
         micBtn.style.display = "none";
         recordingUi.style.display = "flex";
         stopBtn.style.display = "flex";
-        
-        // Илова кардани аниматсияи сурхи мигаткунанда ба тугмаи Stop
         stopBtn.classList.add("stop-pulsing");
-
         let seconds = 0;
         timerInterval = setInterval(() => {
             seconds++;
@@ -99,57 +99,64 @@ micBtn.onclick = async () => {
     } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
 };
 
-// 2. Қатъи сабт
 stopBtn.onclick = () => {
     mediaRecorder.stop();
     clearInterval(timerInterval);
-    
     stopBtn.classList.remove("stop-pulsing");
     stopBtn.style.display = "none";
     sendBtn.style.display = "flex";
 };
 
-// 3. Плеери муттаҳидшуда (барои пешнамоиш)
 window.toggleAudioPreview = () => {
     const btn = document.getElementById("toggle-play-btn");
-    
     if (!currentAudio) {
         const url = URL.createObjectURL(audioBlob);
         currentAudio = new Audio(url);
-        currentAudio.onended = () => {
-            isPlaying = false;
-            btn.innerText = "▶";
-        };
+        currentAudio.onended = () => { isPlaying = false; btn.innerText = "▶"; };
     }
-
-    if (isPlaying) {
-        currentAudio.pause();
-        btn.innerText = "▶";
-    } else {
-        currentAudio.play();
-        btn.innerText = "■";
-    }
+    if (isPlaying) { currentAudio.pause(); btn.innerText = "▶"; } 
+    else { currentAudio.play(); btn.innerText = "■"; }
     isPlaying = !isPlaying;
 };
 
-// 4. Бекор кардани аудио
 window.cancelAudio = () => {
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
     isPlaying = false;
     document.getElementById("toggle-play-btn").innerText = "▶";
-    
     audioBlob = null;
     previewUi.style.display = "none";
     inputArea.style.display = "block"; 
-    micBtn.style.display = "flex";     
+    micBtn.style.display = "flex";      
     sendBtn.style.display = "none";
 };
 
 // --- Ирсоли Паём ---
 window.sendMessage = async () => {
+    // 1. Ирсоли Файлҳо
+    if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                push(messagesRef, { 
+                    type: 'file',
+                    fileData: reader.result,
+                    fileName: file.name,
+                    senderId: myId, 
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    date: new Date().toLocaleDateString()
+                });
+            };
+        }
+        selectedFiles = [];
+        sendBtn.innerText = "➤";
+        sendBtn.style.display = "none";
+        micBtn.style.display = "flex";
+        fileInput.value = "";
+        return;
+    }
+
+    // 2. Ирсоли Аудио
     if (audioBlob) {
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
@@ -164,7 +171,9 @@ window.sendMessage = async () => {
             });
             cancelAudio();
         };
-    } else if (inputArea.value.trim() !== "") {
+    } 
+    // 3. Ирсоли Матн
+    else if (inputArea.value.trim() !== "") {
         const now = new Date();
         push(messagesRef, { 
             text: inputArea.value, 
@@ -178,7 +187,7 @@ window.sendMessage = async () => {
     }
 };
 
-// --- Функсияҳои Меню ва Идоракунӣ ---
+// --- Функсияҳои Меню (ҳамааш дар ҷояш) ---
 window.toggleSelect = (msgKey, element) => {
     if (selectedMessages.includes(msgKey)) {
         selectedMessages = selectedMessages.filter(id => id !== msgKey);
@@ -200,7 +209,7 @@ window.openMenuAtTop = (e) => {
             const copyBtn = document.getElementById("btn-copy");
             const editBtn = document.getElementById("btn-edit");
             if (copyBtn && editBtn) {
-                if (type === 'audio') {
+                if (type === 'audio' || type === 'file') { // Файлро ҳам овезон кардем
                     copyBtn.style.display = "none";
                     editBtn.style.display = "none";
                 } else {
@@ -282,98 +291,100 @@ window.deleteSelected = (type) => {
     finishSelection(); 
 };
 
-        // --- Рендери Паёмҳо ---
-        onChildAdded(messagesRef, (data) => {
-            let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
-            if (hidden.includes(data.key)) return;
-            
-            const msg = data.val();
-            const currentDate = msg.date || "Имрӯз";
-            
-            if (currentDate !== lastDate) {
-                const dateDiv = document.createElement("div");
-                dateDiv.className = "date-divider";
-                dateDiv.innerText = currentDate;
-                document.getElementById("chat-box").appendChild(dateDiv);
-                lastDate = currentDate;
-            }
+// --- Рендери Паёмҳо ---
+onChildAdded(messagesRef, (data) => {
+    let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
+    if (hidden.includes(data.key)) return;
+    
+    const msg = data.val();
+    const currentDate = msg.date || "Имрӯз";
+    
+    if (currentDate !== lastDate) {
+        const dateDiv = document.createElement("div");
+        dateDiv.className = "date-divider";
+        dateDiv.innerText = currentDate;
+        document.getElementById("chat-box").appendChild(dateDiv);
+        lastDate = currentDate;
+    }
 
-            const div = document.createElement("div");
-            div.id = data.key;
-            div.setAttribute("data-type", msg.type === 'audio' ? 'audio' : 'text'); 
-            div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
-            
-            if(msg.type === 'audio') {
-                const audioObj = new Audio(msg.audio);
-                div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
-                                    <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
-                                    <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
-                                    <span>🎙️ ${msg.duration}</span>
-                                </div><div class="msg-time">${msg.time}</div>`;
-                
-                const playBtn = div.querySelector(`#play-${data.key}`);
-                const stopBtn = div.querySelector(`#stop-${data.key}`);
-                
-                playBtn.onclick = () => {
-                    // Агар аудиои дигар садо дода истода бошад, онро қатъ мекунем
-                    if (currentPlayingAudio) {
-                        currentPlayingAudio.pause();
-                        currentPlayingAudio.currentTime = 0;
-                        document.querySelectorAll('button[id^="stop-"]').forEach(btn => btn.style.display = 'none');
-                        document.querySelectorAll('button[id^="play-"]').forEach(btn => btn.style.display = 'block');
-                    }
-                    
-                    audioObj.play();
-                    currentPlayingAudio = audioObj; 
-                    playBtn.style.display = "none";
-                    stopBtn.style.display = "block";
-                };
-                
-                stopBtn.onclick = () => {
-                    audioObj.pause();
-                    audioObj.currentTime = 0;
-                    currentPlayingAudio = null;
-                    stopBtn.style.display = "none";
-                    playBtn.style.display = "block";
-                };
-                
-                audioObj.onended = () => {
-                    currentPlayingAudio = null;
-                    stopBtn.style.display = "none";
-                    playBtn.style.display = "block";
-                };
-            } else {
-                div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
-            }
-            
-            div.onclick = () => window.toggleSelect(data.key, div);
-            document.getElementById("chat-box").appendChild(div);
-            document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-        });
-
-        onChildRemoved(messagesRef, (data) => { const element = document.getElementById(data.key); if (element) element.remove(); });
+    const div = document.createElement("div");
+    div.id = data.key;
+    div.setAttribute("data-type", msg.type || 'text'); 
+    div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
+    
+    // Рендери Файл
+    if(msg.type === 'file') {
+        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${msg.time}</div>`;
+    } 
+    // Рендери Аудио
+    else if(msg.type === 'audio') {
+        const audioObj = new Audio(msg.audio);
+        div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+            <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
+            <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
+            <span>🎙️ ${msg.duration}</span>
+        </div><div class="msg-time">${msg.time}</div>`;
         
-        onChildChanged(messagesRef, (data) => {
-            const msg = data.val();
-            const element = document.getElementById(data.key);
-            if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
-        });
-
-        // --- Санҷиши Интернет ---
-        function updateOnlineStatus() {
-            const indicator = document.getElementById("loading-indicator");
-            const body = document.body;
-            if (!navigator.onLine) {
-                indicator.style.display = "flex"; 
-                body.classList.add("offline-mode");
-            } else {
-                indicator.style.display = "none";
-                body.classList.remove("offline-mode");
+        const playBtn = div.querySelector(`#play-${data.key}`);
+        const stopBtn = div.querySelector(`#stop-${data.key}`);
+        playBtn.onclick = () => {
+            if (currentPlayingAudio) {
+                currentPlayingAudio.pause();
+                currentPlayingAudio.currentTime = 0;
+                document.querySelectorAll('button[id^="stop-"]').forEach(btn => btn.style.display = 'none');
+                document.querySelectorAll('button[id^="play-"]').forEach(btn => btn.style.display = 'block');
             }
-        }
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-        updateOnlineStatus();
+            audioObj.play();
+            currentPlayingAudio = audioObj; 
+            playBtn.style.display = "none";
+            stopBtn.style.display = "block";
+        };
+        stopBtn.onclick = () => {
+            audioObj.pause();
+            audioObj.currentTime = 0;
+            currentPlayingAudio = null;
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+        };
+        audioObj.onended = () => {
+            currentPlayingAudio = null;
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+        };
+    } 
+    // Рендери Матн
+    else {
+        div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
+    }
+    
+    div.onclick = () => window.toggleSelect(data.key, div);
+    document.getElementById("chat-box").appendChild(div);
+    document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
+});
+
+onChildRemoved(messagesRef, (data) => { const element = document.getElementById(data.key); if (element) element.remove(); });
+
+onChildChanged(messagesRef, (data) => {
+    const msg = data.val();
+    const element = document.getElementById(data.key);
+    if (element && msg.text) { element.querySelector('.msg-text').innerHTML = msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'); }
+});
+
+// --- Санҷиши Интернет ---
+function updateOnlineStatus() {
+    const indicator = document.getElementById("loading-indicator");
+    const body = document.body;
+    if (!navigator.onLine) {
+        indicator.style.display = "flex"; 
+        body.classList.add("offline-mode");
+    } else {
+        indicator.style.display = "none";
+        body.classList.remove("offline-mode");
+    }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
 </script>
 
     <style>
@@ -489,10 +500,10 @@ window.deleteSelected = (type) => {
 
 
     <div class="input-panel">
-<input type="file" id="file-input" style="display:none;">
+<input type="file" id="file-input" multiple style="display:none;">
 
 <button id="file-btn" onclick="document.getElementById('file-input').click()">
-    <img src="https://cdn-icons-png.flaticon.com/512/14537/14537726.png" alt="File" style="width: 35px; height: 35px;">
+    <img src="https://cdn-icons-png.flaticon.com/512/14537/14537726.png" style="width: 25px;">
 </button>
         <textarea id="message-input" placeholder="Паём..."></textarea>
         
