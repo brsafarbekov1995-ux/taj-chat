@@ -52,7 +52,7 @@ fileInput.addEventListener('change', (e) => {
     if (selectedFiles.length > 0) {
         micBtn.style.display = "none";
         sendBtn.style.display = "flex";
-        sendBtn.innerText = `📥 ${selectedFiles.length}`;
+        sendBtn.innerText = `➤ ${selectedFiles.length}`;
     }
 });
 
@@ -317,7 +317,7 @@ onChildAdded(messagesRef, (data) => {
     }
 
     if(msg.type === 'file') {
-        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+        div.innerHTML = `<div class="msg-text">📥<a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
     } 
     else if(msg.type === 'audio') {
         const audioObj = new Audio(msg.audio);
