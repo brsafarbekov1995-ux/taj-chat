@@ -54,92 +54,120 @@
             }
         });
 
-        window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
+      // --- Идоракунии Модалҳо ---
+window.closeModal = (id) => {
+    document.getElementById(id).style.display = "none";
+};
 
-        // --- Логикаи Аудио ---
-        micBtn.onclick = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-                
-                mediaRecorder.onstop = () => {
-                    audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
-                    recordingUi.style.display = "none";
-                    previewUi.style.display = "flex";
-                };
+// --- Логикаи Аудио ---
+let isPlaying = false; 
 
-                mediaRecorder.start();
-                inputArea.style.display = "none";
-                micBtn.style.display = "none";
-                recordingUi.style.display = "flex";
-                stopBtn.style.display = "flex";
-
-                let seconds = 0;
-                timerInterval = setInterval(() => {
-                    seconds++;
-                    recordTimer.innerText = new Date(seconds * 1000).toISOString().substr(14, 5);
-                }, 1000);
-            } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
+// 1. Оғози сабти овоз
+micBtn.onclick = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        
+        mediaRecorder.onstop = () => {
+            audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
+            recordingUi.style.display = "none";
+            previewUi.style.display = "flex"; // Инҷо дуруст аст
         };
 
-        stopBtn.onclick = () => {
-            mediaRecorder.stop();
-            clearInterval(timerInterval);
-            stopBtn.style.display = "none";
-            sendBtn.style.display = "flex";
-        };
+        mediaRecorder.start();
+        
+        // Ин қисматро илова кунед:
+        inputArea.style.display = "none"; 
+        micBtn.style.display = "none";
+        recordingUi.style.display = "flex";
+        stopBtn.style.display = "flex";
 
-        window.playPreview = () => {
-            if (currentAudio) currentAudio.pause(); 
-            const url = URL.createObjectURL(audioBlob);
-            currentAudio = new Audio(url);
-            currentAudio.play();
-        };
+        let seconds = 0;
+        timerInterval = setInterval(() => {
+            seconds++;
+            recordTimer.innerText = new Date(seconds * 1000).toISOString().substr(14, 5);
+        }, 1000);
+    } catch (err) { alert("Иҷозат барои микрофон лозим аст!"); }
+};
 
-        window.stopPreview = () => {
-            if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
-        };
+// 2. Қатъи сабт
+stopBtn.onclick = () => {
+    mediaRecorder.stop();
+    clearInterval(timerInterval);
+    stopBtn.style.display = "none";
+    sendBtn.style.display = "flex";
+};
 
-        window.cancelAudio = () => {
-            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            audioBlob = null;
-            previewUi.style.display = "none";
-            inputArea.style.display = "block";
-            micBtn.style.display = "flex";
-            sendBtn.style.display = "none";
+// 3. Плеери муттаҳидшуда (Play/Pause бо як тугма)
+window.toggleAudioPreview = () => {
+    const btn = document.getElementById("toggle-play-btn");
+    
+    if (!currentAudio) {
+        const url = URL.createObjectURL(audioBlob);
+        currentAudio = new Audio(url);
+        currentAudio.onended = () => {
+            isPlaying = false;
+            btn.innerText = "▶";
         };
+    }
 
-        // --- Ирсоли Паём ---
-        window.sendMessage = async () => {
-            if (audioBlob) {
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = () => {
-                    push(messagesRef, { 
-                        type: 'audio',
-                        audio: reader.result,
-                        duration: recordTimer.innerText,
-                        senderId: myId, 
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        date: new Date().toLocaleDateString()
-                    });
-                    cancelAudio();
-                };
-            } else if (inputArea.value.trim() !== "") {
-                const now = new Date();
-                push(messagesRef, { 
-                    text: inputArea.value, 
-                    senderId: myId, 
-                    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    date: now.toLocaleDateString()
-                });
-                inputArea.value = "";
-                sendBtn.style.display = "none";
-                micBtn.style.display = "flex";
-            }
+    if (isPlaying) {
+        currentAudio.pause();
+        btn.innerText = "▶";
+    } else {
+        currentAudio.play();
+        btn.innerText = "■";
+    }
+    isPlaying = !isPlaying;
+};
+
+// 4. Бекор кардани аудио (бо иконаи сатил)
+window.cancelAudio = () => {
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
+    isPlaying = false;
+    document.getElementById("toggle-play-btn").innerText = "▶";
+    
+    audioBlob = null;
+    previewUi.style.display = "none";
+    inputArea.style.display = "block"; // Майдони матнро бармегардонем
+    micBtn.style.display = "flex";      // Микрофонро бармегардонем
+    sendBtn.style.display = "none";
+};
+
+// --- Ирсоли Паём ---
+window.sendMessage = async () => {
+    if (audioBlob) {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+            push(messagesRef, { 
+                type: 'audio',
+                audio: reader.result,
+                duration: recordTimer.innerText,
+                senderId: myId, 
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toLocaleDateString()
+            });
+            cancelAudio();
         };
+    } else if (inputArea.value.trim() !== "") {
+        const now = new Date();
+        push(messagesRef, { 
+            text: inputArea.value, 
+            senderId: myId, 
+            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: now.toLocaleDateString()
+        });
+        inputArea.value = "";
+        sendBtn.style.display = "none";
+        micBtn.style.display = "flex";
+    }
+};
 
         // --- Функсияҳои Меню ва Идоракунӣ ---
         window.toggleSelect = (msgKey, element) => {
@@ -312,6 +340,11 @@
         #loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+		/* Ин барои он аст, ки ҳангоми пинҳон шудани textarea, 
+   recording-ui ё preview-ui пурра ҷойро гиранд */
+#message-input {
+    transition: display 0.3s;
+}
     </style>
 </head>
 <body>
@@ -351,17 +384,20 @@
     <div class="input-panel">
         <textarea id="message-input" placeholder="Паём..."></textarea>
         
-        <div id="recording-ui">
-            <div class="wave"></div><div class="wave" style="animation-delay:0.2s"></div><div class="wave" style="animation-delay:0.4s"></div>
-            <span id="record-timer" class="recording-blink">0:00</span>
-        </div>
+       <div id="recording-ui">
+    <div class="wave"></div>
+    <div class="wave" style="animation-delay:0.2s"></div>
+    <div class="wave" style="animation-delay:0.4s"></div>
+    <span id="record-timer" class="recording-blink">0:00</span>
+</div>
 
-        <div id="preview-ui">
-            <button onclick="playPreview()" class="btn" style="background:#25d366;">▶</button>
-            <button onclick="stopPreview()" class="btn" style="background:orange;">■</button>
-            <span>Овози сабтшуда</span>
-            <button onclick="cancelAudio()" class="btn" style="background:red;">✕</button>
-        </div>
+<div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
+    <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366;">▶</button>
+    
+    <span>Овози сабтшуда</span>
+    
+    <button onclick="cancelAudio()" class="btn" style="background:red;">🗑️</button>
+</div>
         
        <button id="mic-btn" class="btn">
             <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Mic" style="width: 24px; height: 24px;">
