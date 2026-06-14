@@ -4,55 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT - Пурра</title>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28",
-            databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com",
-            projectId: "taj-chat-c87de"
-        };
+    // Firebase Config...
+    const firebaseConfig = { apiKey: "AIzaSyDgcixLDTz5qVBRpQMfxbX8WpSyff76Z28", databaseURL: "https://taj-chat-c87de-default-rtdb.firebaseio.com", projectId: "taj-chat-c87de" };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const messagesRef = ref(db, 'messages');
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const messagesRef = ref(db, 'messages');
+    let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
+    localStorage.setItem("chat_user_id", myId);
 
-        // Идентификатори истифодабаранда
-        let myId = localStorage.getItem("chat_user_id") || "user_" + Math.floor(Math.random() * 1000000);
-        localStorage.setItem("chat_user_id", myId);
+    let lastDate = "", selectedMessages = [], selectedImages = [], audioChunks = [], audioBlob = null, currentAudio = null, timerInterval;
+    const inputArea = document.getElementById("message-input"), recordingUi = document.getElementById("recording-ui"), 
+          previewUi = document.getElementById("preview-ui"), micBtn = document.getElementById("mic-btn"), 
+          sendBtn = document.getElementById("send-btn"), stopBtn = document.getElementById("stop-btn"), 
+          recordTimer = document.getElementById("record-timer"), menu = document.getElementById("custom-menu"), 
+          trigger = document.getElementById("menu-trigger");
 
-        // Тағйирёбандаҳои ҷаҳонӣ
-        let lastDate = "";
-        let selectedMessages = [];
-        let mediaRecorder;
-        let audioChunks = [];
-        let audioBlob = null;
-        let timerInterval;
-        let currentAudio = null; 
+    // --- Функсияҳои асосӣ ---
+    window.toggleFileMenu = (e) => { e.stopPropagation(); document.getElementById("file-menu").classList.toggle('show'); };
+    window.openMenuAtTop = (e) => { e.stopPropagation(); document.getElementById("custom-menu").classList.toggle('show'); };
+    window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
 
-        // Элементҳои UI
-        const inputArea = document.getElementById("message-input");
-        const recordingUi = document.getElementById("recording-ui");
-        const previewUi = document.getElementById("preview-ui");
-        const micBtn = document.getElementById("mic-btn");
-        const sendBtn = document.getElementById("send-btn");
-        const stopBtn = document.getElementById("stop-btn");
-        const recordTimer = document.getElementById("record-timer");
-        const menu = document.getElementById("custom-menu");
-        const trigger = document.getElementById("menu-trigger");
+    inputArea.addEventListener("input", () => {
+        if (inputArea.value.trim() !== "") { micBtn.style.display = "none"; sendBtn.style.display = "flex"; }
+        else if (selectedImages.length === 0) { micBtn.style.display = "flex"; sendBtn.style.display = "none"; }
+    });
 
-        // --- Логикаи воридкунии матн ---
-        inputArea.addEventListener("input", () => {
-            if (inputArea.value.trim() !== "") {
-                micBtn.style.display = "none";
+    window.handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                selectedImages.push(event.target.result);
                 sendBtn.style.display = "flex";
-            } else {
-                micBtn.style.display = "flex";
-                sendBtn.style.display = "none";
-            }
-        });
+                sendBtn.innerText = `➤ (${selectedImages.length})`;
+                micBtn.style.display = "none";
+            };
+            reader.readAsDataURL(file);
+        }
+        document.getElementById("file-menu").classList.remove('show');
+    };
+
+    window.sendMessage = async () => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateStr = now.toLocaleDateString();
+
+        if (selectedImages.length > 0) {
+            selectedImages.forEach(imgData => {
+                push(messagesRef, { type: 'image', image: imgData, senderId: myId, time: timeStr, date: dateStr });
+            });
+            selectedImages = [];
+            sendBtn.innerText = "➤";
+        } else if (audioBlob) {
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+                push(messagesRef, { type: 'audio', audio: reader.result, duration: recordTimer.innerText, senderId: myId, time: timeStr, date: dateStr });
+                cancelAudio();
+            };
+        } else if (inputArea.value.trim() !== "") {
+            push(messagesRef, { text: inputArea.value, senderId: myId, time: timeStr, date: dateStr });
+            inputArea.value = "";
+        }
+        sendBtn.style.display = "none";
+        micBtn.style.display = "flex";
+    };
+
+    // ... (боқимондаи функсияҳои шумо: toggleSelect, copyMessage, openEditModal, saveEdit, showDeleteModal, clearAllMessages, deleteSelected, onChildAdded, onChildRemoved, onChildChanged, updateOnlineStatus, cancelAudio, toggleAudioPreview) ...
 
       // --- Идоракунии Модалҳо ---
 window.closeModal = (id) => {
@@ -139,9 +162,30 @@ window.cancelAudio = () => {
     sendBtn.style.display = "none";
 };
 
-// --- Ирсоли Паём ---
 window.sendMessage = async () => {
-    if (audioBlob) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString();
+
+    // 1. Агар расм интихоб шуда бошад
+    if (selectedImages.length > 0) {
+        selectedImages.forEach(imgData => {
+            push(messagesRef, { 
+                type: 'image',
+                image: imgData,
+                senderId: myId, 
+                time: timeStr,
+                date: dateStr
+            });
+        });
+        // Тоза кардани ҳолати интихоби расм
+        selectedImages = []; 
+        sendBtn.innerText = "➤"; // Барқарор кардани матни тугма
+        sendBtn.style.display = "none";
+        micBtn.style.display = "flex";
+    } 
+    // 2. Агар аудио сабт шуда бошад
+    else if (audioBlob) {
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
@@ -150,25 +194,25 @@ window.sendMessage = async () => {
                 audio: reader.result,
                 duration: recordTimer.innerText,
                 senderId: myId, 
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                date: new Date().toLocaleDateString()
+                time: timeStr,
+                date: dateStr
             });
             cancelAudio();
         };
-    } else if (inputArea.value.trim() !== "") {
-        const now = new Date();
+    } 
+    // 3. Агар матн навишта шуда бошад
+    else if (inputArea.value.trim() !== "") {
         push(messagesRef, { 
             text: inputArea.value, 
             senderId: myId, 
-            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: now.toLocaleDateString()
+            time: timeStr,
+            date: dateStr
         });
         inputArea.value = "";
         sendBtn.style.display = "none";
         micBtn.style.display = "flex";
     }
 };
-
 // --- Функсияҳои Меню ва Идоракунӣ ---
 
 window.toggleSelect = (msgKey, element) => {
@@ -388,10 +432,19 @@ window.openImageModal = (src) => {
     document.getElementById("full-img").src = src;
     modal.style.display = "flex";
 };
-// Ин қисматро дар охири скрипт илова кунед
+// Инро дар поёни скрипт, берун аз ҳама чиз ҷойгир кунед
 window.toggleFileMenu = function(e) {
-    e.stopPropagation();
+    if (e) e.stopPropagation(); 
     const menu = document.getElementById("file-menu");
+    if (menu) {
+        menu.classList.toggle('show');
+    }
+};
+
+// Инчунин ҳамин тавр барои менюи 3 нуқта, то ки ба ҳамдигар халал нарасонанд
+window.openMenuAtTop = function(e) {
+    e.stopPropagation();
+    const menu = document.getElementById("custom-menu");
     menu.classList.toggle('show');
 };
     </script>
@@ -433,7 +486,7 @@ window.toggleFileMenu = function(e) {
 #message-input {
     transition: display 0.3s;
 }
-/* Менюи файл */
+/* --- Менюи файл --- */
 #file-menu { 
     position: absolute; 
     bottom: 70px; 
@@ -443,27 +496,53 @@ window.toggleFileMenu = function(e) {
     border-radius: 10px; 
     display: none; 
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-    z-index: 2000;
+    z-index: 9999; /* Баландтарин дараҷа барои дар боло будан */
 }
-#file-menu.show { display: block; }
-#file-menu label { cursor: pointer; padding: 10px; display: block; }
 
-/* Равзанаи калони расм (Modal) */
-.img-viewer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index: 5000; justify-content: center; align-items: center; }
-   /* Боварӣ ҳосил кунед, ки ин ду қоида дар CSS ҳаст */
-#file-menu { 
-    position: absolute; 
-    bottom: 70px; /* Ин ҷояшро метавонед тағйир диҳед */
-    left: 10px; 
-    background: white; 
+#file-menu.show { 
+    display: block !important; 
+}
+
+#file-menu label { 
+    cursor: pointer; 
     padding: 10px; 
-    border-radius: 10px; 
-    display: none; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-    z-index: 9999; /* Z-index-ро баланд кунед */
+    display: block; 
 }
 
-#file-menu.show { display: block; }
+/* --- Менюи 3 нуқта (custom-menu) --- */
+#custom-menu { 
+    position: absolute; 
+    right: 20px; 
+    top: 60px; 
+    background: white; 
+    border-radius: 10px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+    z-index: 9998; /* Каме пасттар аз менюи файл */
+    width: 180px; 
+    padding: 5px 0; 
+    opacity: 0; 
+    visibility: hidden; 
+    transition: 0.2s; 
+}
+
+#custom-menu.show { 
+    opacity: 1; 
+    visibility: visible; 
+}
+
+/* --- Равзанаи калони расм (Modal) --- */
+.img-viewer { 
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.9); 
+    z-index: 10000; /* Болотар аз ҳама чиз */
+    justify-content: center; 
+    align-items: center; 
+}
    </style>
 </head>
 <body>
@@ -479,10 +558,10 @@ window.toggleFileMenu = function(e) {
         <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
     </div>
 
-    <div id="file-menu" style="position: absolute; bottom: 70px; left: 10px; background: white; padding: 10px; border-radius: 10px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 2000;">
-        <input type="file" id="image-input" accept="image/*" onchange="handleImageSelect(event)" style="display:none;">
-        <label for="image-input" style="cursor:pointer; display:block;">🖼️ Интихоби расм</label>
-    </div>
+   <div id="file-menu">
+    <input type="file" id="image-input" accept="image/*" onchange="handleImageSelect(event)" style="display:none;">
+    <label for="image-input" style="cursor:pointer; display:block;">🖼️ Интихоби расм</label>
+</div>
 
     <div id="img-viewer" class="img-viewer" onclick="this.style.display='none'">
         <img id="full-img" style="max-width:90%; max-height:90%; border-radius:10px;">
