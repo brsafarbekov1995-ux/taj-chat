@@ -379,7 +379,7 @@ onChildChanged(messagesRef, (data) => {
         
         const timeDiv = element.querySelector('.msg-time');
         if (timeDiv) {
-            timeDiv.innerHTML = `<span class="tick-wrapper ${colorClass}">${ticks}</span> ${msg.time}`;
+            timeDiv.innerHTML = `${msg.time} <span class="tick-wrapper ${colorClass}">${ticks}</span>`;
         }
     }
 });
@@ -421,7 +421,20 @@ body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: fl
 .rec-msg { align-self: flex-start; background: white; border-bottom-left-radius: 2px; }
 .selected-message { background-color: #95c7f0 !important; }
 .msg-text { font-size: 15px; word-wrap: break-word; }
-.msg-time { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: #777; }
+.msg-time {
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+    font-size: 10px;
+    color: #777;
+    display: flex;         /* Ин вақт ва галочкаро дар як сатр мемонад */
+    align-items: center;   /* Амудӣ рост мекунад */
+    gap: 4px;              /* Фосилаи хурд байни вақт ва галочка */
+}
+
+.tick-wrapper {
+    display: flex;         /* Галочкаҳоро дар як сатр нигоҳ медорад */
+}
 
 /* ==================================================
    4. Функсияи Ҷавоб додан (Reply UI Styles)
