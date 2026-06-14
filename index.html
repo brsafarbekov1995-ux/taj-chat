@@ -305,11 +305,11 @@ onChildAdded(messagesRef, (data) => {
     }
 
     if(msg.type === 'file') {
-        div.innerHTML = `${replyHtml}<div class="msg-text">📥<a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+        div.innerHTML = `${replyHtml}<div class="msg-text">📥<a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${msg.time} ${tickHtml}</div>`;
     } 
     else if(msg.type === 'audio') {
         const audioObj = new Audio(msg.audio);
-        div.innerHTML = `${replyHtml}<div style="display:flex; align-items:center; gap:8px;">
+        div.innerHTML = `${replyHtml}<div style="display:flex; align-items:center; gap:8px;">...</div><div class="msg-time">${msg.time} ${tickHtml}</div>`;
             <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
             <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
             <span>🎙️ ${msg.duration || ""}</span>
@@ -346,7 +346,7 @@ onChildAdded(messagesRef, (data) => {
         };
     } 
     else {
-        div.innerHTML = `${replyHtml}<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+        div.innerHTML = `${replyHtml}<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time} ${tickHtml}</div>`;
     }
     
     div.onclick = () => window.toggleSelect(data.key, div);
