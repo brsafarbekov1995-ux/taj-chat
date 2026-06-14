@@ -27,6 +27,7 @@ localStorage.setItem("chat_user_id", myId);
 let lastDate = "";
 let selectedMessages = [];
 let selectedFiles = []; 
+let replyData = null; // ФУНКСИЯИ НАВ: барои Reply
 let mediaRecorder;
 let audioChunks = [];
 let audioBlob = null;
@@ -45,6 +46,28 @@ const stopBtn = document.getElementById("stop-btn");
 const recordTimer = document.getElementById("record-timer");
 const menu = document.getElementById("custom-menu");
 const trigger = document.getElementById("menu-trigger");
+
+// --- ФУНКСИЯҲОИ НАВИ REPLY ---
+window.setReply = () => {
+    if (selectedMessages.length > 0) {
+        const msgKey = selectedMessages[0];
+        const element = document.getElementById(msgKey);
+        const text = element.querySelector('.msg-text')?.innerText || "Файл ё Аудио";
+        replyData = { id: msgKey, text: text };
+        const replyContainer = document.getElementById("reply-preview-container");
+        if(replyContainer) {
+            replyContainer.style.display = "block";
+            replyContainer.innerHTML = `Ҷавоб ба: <b>${text.substring(0, 20)}</b> <span onclick="cancelReply()" style="cursor:pointer; float:right;">✕</span>`;
+        }
+        menu.classList.remove('show');
+        finishSelection();
+    }
+};
+window.cancelReply = () => { 
+    replyData = null; 
+    const replyContainer = document.getElementById("reply-preview-container");
+    if(replyContainer) replyContainer.style.display = "none"; 
+};
 
 // --- Логикаи Файлҳо ---
 fileInput.addEventListener('change', (e) => {
@@ -124,63 +147,43 @@ window.cancelAudio = () => {
     audioBlob = null;
     previewUi.style.display = "none";
     inputArea.style.display = "block"; 
-    micBtn.style.display = "flex";      
+    micBtn.style.display = "flex";       
     sendBtn.style.display = "none";
 };
 
 window.sendMessage = async () => {
+    const payload = { 
+        senderId: myId, 
+        status: "sent", 
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
+        date: new Date().toLocaleDateString(),
+        replyTo: replyData 
+    };
+
     if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onloadend = () => {
-                push(messagesRef, { 
-                    type: 'file',
-                    fileData: reader.result,
-                    fileName: file.name,
-                    senderId: myId, 
-                    status: "sent",
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    date: new Date().toLocaleDateString()
-                });
+                push(messagesRef, { ...payload, type: 'file', fileData: reader.result, fileName: file.name });
             };
         }
-        selectedFiles = [];
-        sendBtn.innerText = "➤";
-        sendBtn.style.display = "none";
-        micBtn.style.display = "flex";
-        fileInput.value = "";
-        return;
+        selectedFiles = []; sendBtn.innerText = "➤"; sendBtn.style.display = "none"; micBtn.style.display = "flex"; fileInput.value = "";
+        cancelReply(); return;
     }
 
     if (audioBlob) {
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
-            push(messagesRef, { 
-                type: 'audio',
-                audio: reader.result,
-                duration: recordTimer.innerText,
-                senderId: myId, 
-                status: "sent",
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                date: new Date().toLocaleDateString()
-            });
-            cancelAudio();
+            push(messagesRef, { ...payload, type: 'audio', audio: reader.result, duration: recordTimer.innerText });
+            cancelAudio(); cancelReply();
         };
     } 
     else if (inputArea.value.trim() !== "") {
-        const now = new Date();
-        push(messagesRef, { 
-            text: inputArea.value, 
-            senderId: myId, 
-            status: "sent",
-            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: now.toLocaleDateString()
-        });
-        inputArea.value = "";
-        sendBtn.style.display = "none";
-        micBtn.style.display = "flex";
+        push(messagesRef, { ...payload, type: 'text', text: inputArea.value });
+        inputArea.value = ""; sendBtn.style.display = "none"; micBtn.style.display = "flex";
+        cancelReply();
     }
 };
 
@@ -197,24 +200,6 @@ window.toggleSelect = (msgKey, element) => {
 
 window.openMenuAtTop = (e) => { 
     e.stopPropagation(); 
-    if (selectedMessages.length > 0) {
-        const msgKey = selectedMessages[0];
-        const msgElement = document.getElementById(msgKey);
-        if (msgElement) {
-            const type = msgElement.getAttribute("data-type");
-            const copyBtn = document.getElementById("btn-copy");
-            const editBtn = document.getElementById("btn-edit");
-            if (copyBtn && editBtn) {
-                if (type === 'audio' || type === 'file') {
-                    copyBtn.style.display = "none";
-                    editBtn.style.display = "none";
-                } else {
-                    copyBtn.style.display = "block";
-                    editBtn.style.display = "block";
-                }
-            }
-        }
-    }
     menu.classList.toggle('show'); 
 };
 
@@ -307,6 +292,9 @@ onChildAdded(messagesRef, (data) => {
     div.setAttribute("data-type", msg.type || 'text'); 
     div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
     
+    // Намоиши Reply дар чат
+    let replyHtml = msg.replyTo ? `<div class="quoted-msg" onclick="document.getElementById('${msg.replyTo.id}').scrollIntoView()">Ҷавоб ба: ${msg.replyTo.text}</div>` : "";
+    
     let tickHtml = "";
     if (msg.senderId === myId) {
         let ticks = "✔"; 
@@ -317,11 +305,11 @@ onChildAdded(messagesRef, (data) => {
     }
 
     if(msg.type === 'file') {
-        div.innerHTML = `<div class="msg-text">📥<a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+        div.innerHTML = `${replyHtml}<div class="msg-text">📥<a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
     } 
     else if(msg.type === 'audio') {
         const audioObj = new Audio(msg.audio);
-        div.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+        div.innerHTML = `${replyHtml}<div style="display:flex; align-items:center; gap:8px;">
             <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
             <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
             <span>🎙️ ${msg.duration || ""}</span>
@@ -331,15 +319,12 @@ onChildAdded(messagesRef, (data) => {
         const stopBtn = div.querySelector(`#stop-${data.key}`);
 
         playBtn.onclick = () => {
-            // Қатъ кардани аудиои пешина
             if (window.currentPlayingAudio) {
                 window.currentPlayingAudio.pause();
                 window.currentPlayingAudio.currentTime = 0;
-                // Ҳамаи тугмаҳоро ба ҳолати Play бармегардонем
                 document.querySelectorAll('[id^="stop-"]').forEach(el => el.style.display = "none");
                 document.querySelectorAll('[id^="play-"]').forEach(el => el.style.display = "block");
             }
-            
             audioObj.play();
             window.currentPlayingAudio = audioObj; 
             playBtn.style.display = "none";
@@ -361,7 +346,7 @@ onChildAdded(messagesRef, (data) => {
         };
     } 
     else {
-        div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+        div.innerHTML = `${replyHtml}<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
     }
     
     div.onclick = () => window.toggleSelect(data.key, div);
@@ -413,69 +398,22 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
-
-
-
-
-
-
-
-
-
-
-
-// Илова кардани ҳолати интихоб
-let isSelectionMode = false;
-
-// Функсия барои интихоби дарозмуддат (Long Press)
-let pressTimer;
-const setupLongPress = (div, msgKey) => {
-    div.onmousedown = () => {
-        pressTimer = setTimeout(() => {
-            enableSelection(msgKey, div);
-        }, 800); // 800 мс - интизории дароз
-    };
-    div.onmouseup = () => clearTimeout(pressTimer);
-};
-
-function enableSelection(msgKey, element) {
-    isSelectionMode = true;
-    document.getElementById("chat-box").classList.add("selection-mode");
-    element.classList.add("message-selected");
-    selectedMessages.push(msgKey);
-    
-    // Барои баровардани клавиатура (тавассути фокус ба textarea)
-    inputArea.focus(); 
-}
-
-// Ҳангоми омадани паём, мо доирачаро илова мекунем
-// Дар қисми onChildAdded:
-div.innerHTML = `<span class="select-checkbox"></span>` + div.innerHTML;
-setupLongPress(div, data.key);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </script>
- <style>
- /* --- Танзимоти умумӣ --- */
+<style>
+     /* ==================================================
+   1. Танзимоти умумӣ (Global Styles)
+   ================================================== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
-/* --- Сарлавҳаи болоӣ (Header) --- */
+/* ==================================================
+   2. Сарлавҳа (Header)
+   ================================================== */
 .header { background: rgba(7, 94, 84, 0.85); backdrop-filter: blur(8px); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
 
-/* --- Майдони чат ва паёмҳо --- */
+/* ==================================================
+   3. Майдони чат ва حباب-ҳои паёмҳо (Chat Box & Bubbles)
+   ================================================== */
 .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .date-divider { align-self: center; background: #e1f3fb; color: #555; padding: 4px 12px; border-radius: 8px; font-size: 11px; margin: 10px 0; }
 .msg-bubble { position: relative; padding: 8px 10px 22px 10px; border-radius: 15px; max-width: 80%; width: fit-content; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
@@ -485,143 +423,114 @@ body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: fl
 .msg-text { font-size: 15px; word-wrap: break-word; }
 .msg-time { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: #777; }
 
-/* --- Менюи иловагӣ (Триггер ва меню) --- */
+/* ==================================================
+   4. Функсияи Ҷавоб додан (Reply UI Styles)
+   ================================================== */
+.quoted-msg { background: rgba(0,0,0,0.05); border-left: 3px solid #075e54; padding: 6px; margin-bottom: 6px; font-size: 12px; border-radius: 4px; cursor: pointer; }
+.quoted-msg-label { color: #075e54; font-weight: bold; font-size: 11px; }
+#reply-preview-container { background: #f0f2f5; padding: 8px 12px; margin: 5px 10px; border-left: 4px solid #075e54; border-radius: 5px; font-size: 13px; display: none; }
+
+/* ==================================================
+   5. Менюи контекстӣ ва Модалҳо (Menus & Modals)
+   ================================================== */
 #menu-trigger { cursor: pointer; font-size: 24px; }
 #custom-menu { position: absolute; right: 20px; top: 60px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 9999; width: 180px; padding: 5px 0; opacity: 0; visibility: hidden; transition: 0.2s; }
 #custom-menu.show { opacity: 1; visibility: visible; }
 #custom-menu button { display: block; width: 100%; padding: 10px 15px; border: none; background: none; text-align: left; cursor: pointer; }
-
-/* --- Модалҳо (Нест кардан ва Таҳрир) --- */
 .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 3000; }
 .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
 .btn-action { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #075e54; color: white; }
 
-/* --- Панели вуруди матн ва тугмаҳо --- */
+/* ==================================================
+   6. Панели воридкунии матн (Input Panel)
+   ================================================== */
 .input-panel { padding: 10px; background: transparent; display: flex; gap: 8px; align-items: center; }
 textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; height: 40px; resize: none; }
 .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #075e54; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-#message-input { transition: display 0.3s; }
-#mic-btn { background: #ffffff; border: 2px solid #000000; transition: transform 0.2s; }
 #file-btn { background-color: #ffffff !important; border: 2px solid #000000 !important; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 8px; flex-shrink: 0; padding: 0; }
-#file-btn:active { transform: scale(0.9); background-color: #ffffff !important; }
 
-/* --- UI барои сабти овоз (Audio/Mic) --- */
-#recording-ui { display: none; flex: 1; align-items: center; justify-content: center; gap: 10px; }
-#preview-ui { display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px; }
+/* ==================================================
+   7. Аниматсияҳо ва Индикаторҳо (Animations & Status)
+   ================================================== */
 .wave { width: 3px; height: 15px; background: #075e54; animation: wave-anim 1s infinite; }
 @keyframes wave-anim { 0%, 100% { height: 10px; } 50% { height: 25px; } }
 .recording-blink { animation: blink 1s infinite; color: red; }
 @keyframes blink { 50% { opacity: 0; } }
 .stop-pulsing { animation: pulse-red 1s infinite; }
 @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
-
-/* --- Санҷиши интернет ва боркунӣ --- */
-.offline-mode { pointer-events: none; opacity: 0.5; filter: grayscale(1); }
-#loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-.spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+#loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+.spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-/* --- Галочкаҳо (Ticks) --- */
 .tick-wrapper { display: inline-block; margin-right: 4px; font-size: 12px; }
 .tick-gray { color: #999; }
 .tick-green { color: #25d366; }
-.tick-wrapper { font-size: 12px; margin-right: 4px; }
-
-
-
-/* Ранги паём ҳангоми интихоб шудан */
-.message-selected {
-    background-color: #cce5ff !important;
-}
-
-/* Доирачаи интихоб дар паҳлӯи паём */
-.select-checkbox {
-    display: none;
-    position: absolute;
-    left: -30px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border: 2px solid #075e54;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-/* Ҳангоми дар ҳолати интихоб будан, доирача намоён мешавад */
-.selection-mode .select-checkbox {
-    display: block;
-}
-
-
-
-
-
-
    </style>
 </head>
 <body>
+    <div id="reply-preview-container" style="display:none; background:#f0f0f0; padding:10px; margin:5px; border-left:4px solid #25d366; font-size:12px;"></div>
+
     <div id="loading-indicator">
-    <div class="spinner"></div>
-    <p>Интернет нест, интизор шавед...</p>
-</div>
-
-<div id="custom-menu">
-    <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
-    <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
-    <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
-    <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
-</div>
-
-<div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
-    <div class="modal-content">
-        <h3>Нест кардан:</h3>
-        <button class="btn-action" onclick="deleteSelected('me')">👁️ Аз экрани ман</button>
-        <button class="btn-action" onclick="deleteSelected('everyone')">🗑️ Аз ҳама</button>
-    </div>
-</div>
-
-<div id="edit-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('edit-modal')">
-    <div class="modal-content">
-        <textarea id="edit-input" style="width: 100%; height: 60px;"></textarea>
-        <button class="btn-action" onclick="saveEdit()">Сабт кардан</button>
-    </div>
-</div>
-
-<div class="header">
-    <span></span> <div>TAJ CHAT</div> <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
-</div>
-
-<div class="chat-box" id="chat-box"></div>
-
-<div class="input-panel">
-    <input type="file" id="file-input" multiple style="display:none;">
-<button id="file-btn" onclick="document.getElementById('file-input').click()">
-    <img src="https://cdn-icons-png.flaticon.com/512/1092/1092100.png" style="width: 25px;">
-</button>
-    
-    <textarea id="message-input" placeholder="Паём..."></textarea>
-    
-    <div id="recording-ui">
-        <div class="wave"></div>
-        <div class="wave" style="animation-delay:0.2s"></div>
-        <div class="wave" style="animation-delay:0.4s"></div>
-        <span id="record-timer" class="recording-blink">0:00</span>
+        <div class="spinner"></div>
+        <p>Интернет нест, интизор шавед...</p>
     </div>
 
-    <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
-        <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
-        <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
-        <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
+    <div id="custom-menu">
+        <button id="btn-copy" onclick="copyMessage()">📋 Нусха кардан</button>
+        <button id="btn-edit" onclick="openEditModal()">✏️ Таҳрир</button>
+        <button id="btn-reply" onclick="setReply()">↩️ Ҷавоб додан</button> 
+        <button onclick="showDeleteModal()">🗑️ Нест кардан</button>
+        <button onclick="clearAllMessages()" style="color: red;">🧹 Пок кардани чат</button>
     </div>
-    
-    <button id="mic-btn" class="btn">
-        <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Microphone" style="width: 24px; height: 24px;">
-    </button>
-    <button id="stop-btn" class="btn" style="display:none; background:red;">
-        <img src="https://cdn-icons-png.flaticon.com/512/18401/18401499.png" alt="Stop" style="width: 24px; height: 24px;">
-    </button>
-    <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
-</div>
+
+    <div id="delete-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('delete-modal')">
+        <div class="modal-content">
+            <h3>Нест кардан:</h3>
+            <button class="btn-action" onclick="deleteSelected('me')">👁️ Аз экрани ман</button>
+            <button class="btn-action" onclick="deleteSelected('everyone')">🗑️ Аз ҳама</button>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('edit-modal')">
+        <div class="modal-content">
+            <textarea id="edit-input" style="width: 100%; height: 60px;"></textarea>
+            <button class="btn-action" onclick="saveEdit()">Сабт кардан</button>
+        </div>
+    </div>
+
+    <div class="header">
+        <span></span> <div>TAJ CHAT</div> <span id="menu-trigger" onclick="openMenuAtTop(event)">⋮</span>
+    </div>
+
+    <div class="chat-box" id="chat-box"></div>
+
+    <div class="input-panel">
+        <input type="file" id="file-input" multiple style="display:none;">
+        <button id="file-btn" onclick="document.getElementById('file-input').click()">
+            <img src="https://cdn-icons-png.flaticon.com/512/1092/1092100.png" style="width: 25px;">
+        </button>
+        
+        <textarea id="message-input" placeholder="Паём..."></textarea>
+        
+        <div id="recording-ui" style="display: none;">
+            <div class="wave"></div>
+            <div class="wave" style="animation-delay:0.2s"></div>
+            <div class="wave" style="animation-delay:0.4s"></div>
+            <span id="record-timer" class="recording-blink">0:00</span>
+        </div>
+
+        <div id="preview-ui" style="display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px;">
+            <button onclick="cancelAudio()" class="btn" style="background:red; width: 40px; height: 40px;">🗑️</button>
+            <span style="font-size: 14px; color: #555;">Садои сабтшуда</span>
+            <button id="toggle-play-btn" onclick="toggleAudioPreview()" class="btn" style="background:#25d366; width: 40px; height: 40px;">▶</button>
+        </div>
+        
+        <button id="mic-btn" class="btn">
+            <img src="https://cdn-icons-png.flaticon.com/512/3364/3364184.png" alt="Microphone" style="width: 24px; height: 24px;">
+        </button>
+        <button id="stop-btn" class="btn" style="display:none; background:red;">
+            <img src="https://cdn-icons-png.tlaticon.com/512/18401/18401499.png" alt="Stop" style="width: 24px; height: 24px;">
+        </button>
+        <button id="send-btn" class="btn" onclick="sendMessage()" style="display: none;">➤</button>
+    </div>
 </body>
 </html>
