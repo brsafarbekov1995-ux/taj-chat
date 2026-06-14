@@ -32,7 +32,7 @@ let audioChunks = [];
 let audioBlob = null;
 let timerInterval;
 let currentAudio = null; 
-let currentPlayingAudio = null; 
+window.currentPlayingAudio = null; // Глобалӣ барои назорати садо
 
 // Элементҳои UI
 const inputArea = document.getElementById("message-input");
@@ -56,7 +56,6 @@ fileInput.addEventListener('change', (e) => {
     }
 });
 
-// --- Логикаи воридкунии матн ---
 inputArea.addEventListener("input", () => {
     if (inputArea.value.trim() !== "") {
         micBtn.style.display = "none";
@@ -67,7 +66,6 @@ inputArea.addEventListener("input", () => {
     }
 });
 
-// --- Идоракунии Модалҳо ---
 window.closeModal = (id) => { document.getElementById(id).style.display = "none"; };
 
 // --- Логикаи Аудио ---
@@ -130,7 +128,6 @@ window.cancelAudio = () => {
     sendBtn.style.display = "none";
 };
 
-// --- Ирсоли Паём ---
 window.sendMessage = async () => {
     if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
@@ -187,7 +184,6 @@ window.sendMessage = async () => {
     }
 };
 
-// --- Функсияҳои Меню ---
 window.toggleSelect = (msgKey, element) => {
     if (selectedMessages.includes(msgKey)) {
         selectedMessages = selectedMessages.filter(id => id !== msgKey);
@@ -291,7 +287,6 @@ window.deleteSelected = (type) => {
     finishSelection(); 
 };
 
-// --- Рендери Паёмҳо бо логикаи дурусти галочка ---
 onChildAdded(messagesRef, (data) => {
     let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
     if (hidden.includes(data.key)) return;
@@ -312,7 +307,6 @@ onChildAdded(messagesRef, (data) => {
     div.setAttribute("data-type", msg.type || 'text'); 
     div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
     
-    // --- Логикаи галочка ---
     let tickHtml = "";
     if (msg.senderId === myId) {
         let ticks = "✔"; 
@@ -322,7 +316,6 @@ onChildAdded(messagesRef, (data) => {
         tickHtml = `<span class="tick-wrapper ${colorClass}">${ticks}</span>`;
     }
 
-    // Рендери UI
     if(msg.type === 'file') {
         div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
     } 
@@ -336,14 +329,35 @@ onChildAdded(messagesRef, (data) => {
         
         const playBtn = div.querySelector(`#play-${data.key}`);
         const stopBtn = div.querySelector(`#stop-${data.key}`);
+
         playBtn.onclick = () => {
-            if (currentPlayingAudio) { currentPlayingAudio.pause(); currentPlayingAudio.currentTime = 0; }
-            audioObj.play(); currentPlayingAudio = audioObj; 
-            playBtn.style.display = "none"; stopBtn.style.display = "block";
+            // Қатъ кардани аудиои пешина
+            if (window.currentPlayingAudio) {
+                window.currentPlayingAudio.pause();
+                window.currentPlayingAudio.currentTime = 0;
+                // Ҳамаи тугмаҳоро ба ҳолати Play бармегардонем
+                document.querySelectorAll('[id^="stop-"]').forEach(el => el.style.display = "none");
+                document.querySelectorAll('[id^="play-"]').forEach(el => el.style.display = "block");
+            }
+            
+            audioObj.play();
+            window.currentPlayingAudio = audioObj; 
+            playBtn.style.display = "none";
+            stopBtn.style.display = "block";
         };
+
         stopBtn.onclick = () => {
-            audioObj.pause(); audioObj.currentTime = 0;
-            stopBtn.style.display = "none"; playBtn.style.display = "block";
+            audioObj.pause();
+            audioObj.currentTime = 0;
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+            window.currentPlayingAudio = null;
+        };
+
+        audioObj.onended = () => {
+            stopBtn.style.display = "none";
+            playBtn.style.display = "block";
+            window.currentPlayingAudio = null;
         };
     } 
     else {
@@ -354,7 +368,6 @@ onChildAdded(messagesRef, (data) => {
     document.getElementById("chat-box").appendChild(div);
     document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
 
-    // Автоматикӣ нав кардани статус
     if (msg.senderId !== myId) {
         if (msg.status === "sent") update(ref(db, 'messages/' + data.key), { status: "delivered" });
         if (msg.status !== "read") update(ref(db, 'messages/' + data.key), { status: "read" });
@@ -386,7 +399,6 @@ onChildChanged(messagesRef, (data) => {
     }
 });
 
-// --- Санҷиши Интернет ---
 function updateOnlineStatus() {
     const indicator = document.getElementById("loading-indicator");
     const body = document.body;
