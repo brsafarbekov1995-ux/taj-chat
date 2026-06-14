@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAJ CHAT - Пурра</title>
-<script type="module">
+	<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, remove, update, onChildRemoved, onChildChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -26,7 +26,7 @@ localStorage.setItem("chat_user_id", myId);
 // Тағйирёбандаҳои ҷаҳонӣ
 let lastDate = "";
 let selectedMessages = [];
-let selectedFiles = []; // Нав барои файлҳо
+let selectedFiles = []; 
 let mediaRecorder;
 let audioChunks = [];
 let audioBlob = null;
@@ -36,7 +36,7 @@ let currentPlayingAudio = null;
 
 // Элементҳои UI
 const inputArea = document.getElementById("message-input");
-const fileInput = document.getElementById("file-input"); // Нав
+const fileInput = document.getElementById("file-input"); 
 const recordingUi = document.getElementById("recording-ui");
 const previewUi = document.getElementById("preview-ui");
 const micBtn = document.getElementById("mic-btn");
@@ -52,7 +52,7 @@ fileInput.addEventListener('change', (e) => {
     if (selectedFiles.length > 0) {
         micBtn.style.display = "none";
         sendBtn.style.display = "flex";
-        sendBtn.innerText = `📎 ${selectedFiles.length}`; // Нишон додани миқдор
+        sendBtn.innerText = `📎 ${selectedFiles.length}`;
     }
 });
 
@@ -132,7 +132,6 @@ window.cancelAudio = () => {
 
 // --- Ирсоли Паём ---
 window.sendMessage = async () => {
-    // 1. Ирсоли Файлҳо
     if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
             const reader = new FileReader();
@@ -156,7 +155,6 @@ window.sendMessage = async () => {
         return;
     }
 
-    // 2. Ирсоли Аудио
     if (audioBlob) {
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
@@ -172,25 +170,21 @@ window.sendMessage = async () => {
             cancelAudio();
         };
     } 
-    // 3. Ирсоли Матн
-  // 3. Ирсоли Матн
-else if (inputArea.value.trim() !== "") {
-    const now = new Date();
-    push(messagesRef, { 
-        text: inputArea.value, 
-        senderId: myId, 
-        status: 'sent', // МУҲИМ
-        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: now.toLocaleDateString()
-    });
-    inputArea.value = "";
-    sendBtn.style.display = "none";
-    micBtn.style.display = "flex";
-}
+    else if (inputArea.value.trim() !== "") {
+        const now = new Date();
+        push(messagesRef, { 
+            text: inputArea.value, 
+            senderId: myId, 
+            time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: now.toLocaleDateString()
+        });
+        inputArea.value = "";
+        sendBtn.style.display = "none";
+        micBtn.style.display = "flex";
     }
 };
 
-// --- Функсияҳои Меню (ҳамааш дар ҷояш) ---
+// --- Функсияҳои Меню ---
 window.toggleSelect = (msgKey, element) => {
     if (selectedMessages.includes(msgKey)) {
         selectedMessages = selectedMessages.filter(id => id !== msgKey);
@@ -212,7 +206,7 @@ window.openMenuAtTop = (e) => {
             const copyBtn = document.getElementById("btn-copy");
             const editBtn = document.getElementById("btn-edit");
             if (copyBtn && editBtn) {
-                if (type === 'audio' || type === 'file') { // Файлро ҳам овезон кардем
+                if (type === 'audio' || type === 'file') {
                     copyBtn.style.display = "none";
                     editBtn.style.display = "none";
                 } else {
@@ -294,15 +288,34 @@ window.deleteSelected = (type) => {
     finishSelection(); 
 };
 
-// --- Рендери Паёмҳо ---
+// --- Рендери Паёмҳо бо иловаи галочка ---
 onChildAdded(messagesRef, (data) => {
+    let hidden = JSON.parse(localStorage.getItem("hidden_msgs") || "[]");
+    if (hidden.includes(data.key)) return;
     
+    const msg = data.val();
+    const currentDate = msg.date || "Имрӯз";
+    
+    if (currentDate !== lastDate) {
+        const dateDiv = document.createElement("div");
+        dateDiv.className = "date-divider";
+        dateDiv.innerText = currentDate;
+        document.getElementById("chat-box").appendChild(dateDiv);
+        lastDate = currentDate;
+    }
+
+    const div = document.createElement("div");
+    div.id = data.key;
+    div.setAttribute("data-type", msg.type || 'text'); 
+    div.className = `msg-bubble ${msg.senderId === myId ? 'my-msg' : 'rec-msg'}`;
+    
+    // Логикаи галочка (танҳо барои паёмҳои ман)
+    const tickHtml = msg.senderId === myId ? `<span class="tick-wrapper tick-green">✔✔</span>` : "";
+
     // Рендери Файл
-   if(msg.type === 'file') {
-    const ticksHtml = msg.senderId === myId ? `<span class="tick-wrapper">${getTicks(msg.status || 'sent')}</span>` : '';
-    div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div>
-                     <div class="msg-time">${ticksHtml} ${msg.time}</div>`;
-}
+    if(msg.type === 'file') {
+        div.innerHTML = `<div class="msg-text">📎 <a href="${msg.fileData}" download="${msg.fileName}">${msg.fileName}</a></div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
+    } 
     // Рендери Аудио
     else if(msg.type === 'audio') {
         const audioObj = new Audio(msg.audio);
@@ -310,7 +323,7 @@ onChildAdded(messagesRef, (data) => {
             <button id="play-${data.key}" style="background:#075e54; border:none; color:white; border-radius:50%; width:30px; height:30px;">▶</button>
             <button id="stop-${data.key}" style="background:orange; border:none; color:white; border-radius:50%; width:30px; height:30px; display:none;">■</button>
             <span>🎙️ ${msg.duration}</span>
-        </div><div class="msg-time">${msg.time}</div>`;
+        </div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
         
         const playBtn = div.querySelector(`#play-${data.key}`);
         const stopBtn = div.querySelector(`#stop-${data.key}`);
@@ -341,7 +354,7 @@ onChildAdded(messagesRef, (data) => {
     } 
     // Рендери Матн
     else {
-        div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${msg.time}</div>`;
+        div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div><div class="msg-time">${tickHtml} ${msg.time}</div>`;
     }
     
     div.onclick = () => window.toggleSelect(data.key, div);
@@ -372,133 +385,66 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
-// Функция барои сохтани HTML-и галочкаҳо
-const getTicks = (status) => {
-    if (status === 'sent') return '<span class="tick-gray">✓</span>';
-    if (status === 'delivered') return '<span class="tick-gray">✓✓</span>';
-    if (status === 'read') return '<span class="tick-green">✓✓</span>';
-    return '';
-};
-// Мисол барои матн:
-push(messagesRef, { 
-    text: inputArea.value, 
-    senderId: myId, 
-    status: 'sent', // ИНРО ИЛОВА КУНЕД
-    time: now.toLocaleTimeString(...),
-    date: now.toLocaleDateString()
-});
-
-// Ҳамин тавр status: 'sent'-ро дар қисми файлҳо ва аудиоҳо низ илова кунед.
-else {
-    // Галочкаҳоро барои паёмҳои шахсии худ нишон медиҳем
-    const ticksHtml = msg.senderId === myId ? `<span class="tick-wrapper">${getTicks(msg.status || 'sent')}</span>` : '';
-    
-    div.innerHTML = `<div class="msg-text">${msg.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</div>
-                     <div class="msg-time">${ticksHtml} ${msg.time}</div>`;
-}
-// Инро дар охири функцияи onChildAdded илова кунед:
-if (msg.senderId !== myId && msg.status !== 'read') {
-    update(ref(db, 'messages/' + data.key), { status: 'read' });
-}
-onChildChanged(messagesRef, (data) => {
-    const msg = data.val();
-    const element = document.getElementById(data.key);
-    if (element) {
-        const timeDiv = element.querySelector('.msg-time');
-        if (timeDiv) {
-            // Агар паём аз они мо бошад, статусро нав мекунем
-            if (msg.senderId === myId) {
-                const ticksHtml = `<span class="tick-wrapper">${getTicks(msg.status)}</span>`;
-                timeDiv.innerHTML = `${ticksHtml} ${msg.time}`;
-            }
-        }
-    }
-});
 </script>
+ <style>
+ /* --- Танзимоти умумӣ --- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #e5ddd5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .header { background: rgba(7, 94, 84, 0.85); backdrop-filter: blur(8px); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
-        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .date-divider { align-self: center; background: #e1f3fb; color: #555; padding: 4px 12px; border-radius: 8px; font-size: 11px; margin: 10px 0; }
-        .msg-bubble { position: relative; padding: 8px 10px 22px 10px; border-radius: 15px; max-width: 80%; width: fit-content; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .my-msg { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 2px; }
-        .rec-msg { align-self: flex-start; background: white; border-bottom-left-radius: 2px; }
-        .selected-message { background-color: #95c7f0 !important; }
-        .msg-text { font-size: 15px; word-wrap: break-word; }
-        .msg-time { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: #777; }
-        #menu-trigger { cursor: pointer; font-size: 24px; }
-        #custom-menu { position: absolute; right: 20px; top: 60px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 9999; width: 180px; padding: 5px 0; opacity: 0; visibility: hidden; transition: 0.2s; }
-        #custom-menu.show { opacity: 1; visibility: visible; }
-        #custom-menu button { display: block; width: 100%; padding: 10px 15px; border: none; background: none; text-align: left; cursor: pointer; }
-        .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 3000; }
-        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
-        .btn-action { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #075e54; color: white; }
-        .input-panel { padding: 10px; background: transparent; display: flex; gap: 8px; align-items: center; }
-        textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; height: 40px; resize: none; }
-        .btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #075e54; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #recording-ui { display: none; flex: 1; align-items: center; justify-content: center; gap: 10px; }
-        #preview-ui { display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px; }
-        .wave { width: 3px; height: 15px; background: #075e54; animation: wave-anim 1s infinite; }
-        @keyframes wave-anim { 0%, 100% { height: 10px; } 50% { height: 25px; } }
-        .recording-blink { animation: blink 1s infinite; color: red; }
-        @keyframes blink { 50% { opacity: 0; } }
-        .offline-mode { pointer-events: none; opacity: 0.5; filter: grayscale(1); }
-        #loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-		/* Ин барои он аст, ки ҳангоми пинҳон шудани textarea, 
-   recording-ui ё preview-ui пурра ҷойро гиранд */
-#message-input {
-    transition: display 0.3s;
-}
-/* Услуби асосии тугма */
-#mic-btn {
-    background: #ffffff;
-    border: 2px solid #000000;
-    transition: transform 0.2s;
-}
+/* --- Сарлавҳаи болоӣ (Header) --- */
+.header { background: rgba(7, 94, 84, 0.85); backdrop-filter: blur(8px); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
 
-/* Синфи аниматсияи сурх */
-.stop-pulsing {
-    animation: pulse-red 1s infinite;
-}
+/* --- Майдони чат ва паёмҳо --- */
+.chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.date-divider { align-self: center; background: #e1f3fb; color: #555; padding: 4px 12px; border-radius: 8px; font-size: 11px; margin: 10px 0; }
+.msg-bubble { position: relative; padding: 8px 10px 22px 10px; border-radius: 15px; max-width: 80%; width: fit-content; cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+.my-msg { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 2px; }
+.rec-msg { align-self: flex-start; background: white; border-bottom-left-radius: 2px; }
+.selected-message { background-color: #95c7f0 !important; }
+.msg-text { font-size: 15px; word-wrap: break-word; }
+.msg-time { position: absolute; bottom: 4px; right: 8px; font-size: 10px; color: #777; }
 
-/* Аниматсияи сурхи мигаткунанда */
-@keyframes pulse-red {
-    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
-}
-#file-btn {
-    background-color: #ffffff !important; /* Фони сафед */
-    border: 2px solid #000000 !important; /* Рамкаи сиёҳ */
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 8px;
-    flex-shrink: 0;
-    padding: 0; /* Барои марказонии иконка */
-}
+/* --- Менюи иловагӣ (Триггер ва меню) --- */
+#menu-trigger { cursor: pointer; font-size: 24px; }
+#custom-menu { position: absolute; right: 20px; top: 60px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 9999; width: 180px; padding: 5px 0; opacity: 0; visibility: hidden; transition: 0.2s; }
+#custom-menu.show { opacity: 1; visibility: visible; }
+#custom-menu button { display: block; width: 100%; padding: 10px 15px; border: none; background: none; text-align: left; cursor: pointer; }
 
-/* Ин қисмро нест кунед ё шарҳ диҳед, то рангаш тағйир наёбад */
-#file-btn:active {
-    transform: scale(0.9);
-    background-color: #ffffff !important; /* Ранги сафедро нигоҳ медорад */
-}
-.tick-wrapper {
-    display: inline-block;
-    margin-right: 4px;
-    font-size: 12px;
-}
+/* --- Модалҳо (Нест кардан ва Таҳрир) --- */
+.modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 3000; }
+.modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
+.btn-action { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #075e54; color: white; }
+
+/* --- Панели вуруди матн ва тугмаҳо --- */
+.input-panel { padding: 10px; background: transparent; display: flex; gap: 8px; align-items: center; }
+textarea { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; height: 40px; resize: none; }
+.btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #075e54; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#message-input { transition: display 0.3s; }
+#mic-btn { background: #ffffff; border: 2px solid #000000; transition: transform 0.2s; }
+#file-btn { background-color: #ffffff !important; border: 2px solid #000000 !important; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 8px; flex-shrink: 0; padding: 0; }
+#file-btn:active { transform: scale(0.9); background-color: #ffffff !important; }
+
+/* --- UI барои сабти овоз (Audio/Mic) --- */
+#recording-ui { display: none; flex: 1; align-items: center; justify-content: center; gap: 10px; }
+#preview-ui { display: none; flex: 1; align-items: center; justify-content: space-between; background: white; padding: 5px 15px; border-radius: 20px; }
+.wave { width: 3px; height: 15px; background: #075e54; animation: wave-anim 1s infinite; }
+@keyframes wave-anim { 0%, 100% { height: 10px; } 50% { height: 25px; } }
+.recording-blink { animation: blink 1s infinite; color: red; }
+@keyframes blink { 50% { opacity: 0; } }
+.stop-pulsing { animation: pulse-red 1s infinite; }
+@keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+
+/* --- Санҷиши интернет ва боркунӣ --- */
+.offline-mode { pointer-events: none; opacity: 0.5; filter: grayscale(1); }
+#loading-indicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #075e54; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* --- Галочкаҳо (Ticks) --- */
+.tick-wrapper { display: inline-block; margin-right: 4px; font-size: 12px; }
 .tick-gray { color: #999; }
-.tick-green { color: #4fc3f7; } /* Ранги сабз/кабуд барои хонда шуд */
-    </style>
+.tick-green { color: #4fc3f7; } 
+   </style>
 </head>
 <body>
     <div id="loading-indicator">
